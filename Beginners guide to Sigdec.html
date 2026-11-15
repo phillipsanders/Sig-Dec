@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signed Decisions: a beginner’s guide</title>
+<style>
+:root{
+  --paper:#EEF1F5; --sheet:#FFFFFF; --ink:#14213D; --ink-soft:#4B587A; --line:#C9D1DF;
+  --pen:#2F4BD8; --pen-soft:#E3E8FB;
+  --must:#A3154A; --must-soft:#F8E1EA; --should:#9A5B00; --should-soft:#FBEBD0; --may:#0F766E; --may-soft:#D8F1EE;
+  --danger:#C62828; --brand:#E0245E; --ok:#15803D;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:"Avenir Next","Segoe UI",system-ui,-apple-system,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{ color-scheme:dark;
+    --paper:#0F1626; --sheet:#182238; --ink:#E8ECF6; --ink-soft:#A6B1CC; --line:#33415F;
+    --pen:#8EA2FF; --pen-soft:#232F55;
+    --must:#FF8FB3; --must-soft:#4A1730; --should:#F3B85C; --should-soft:#45300A; --may:#5FD6CA; --may-soft:#0E3D39;
+    --danger:#FF6B6B; --brand:#FF6F9C; --ok:#5BD58A;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto} *{transition:none!important}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.55}
+h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.15;margin:0}
+h1{font-size:clamp(2.1rem,6vw,3.6rem);letter-spacing:-.01em}
+h2{font-size:clamp(1.5rem,4vw,2.1rem)}
+h3{font-size:1.15rem}
+p{margin:.7em 0;max-width:68ch}
+a{color:var(--pen)}
+button,select,textarea,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--pen);outline-offset:2px}
+.wrap{max-width:920px;margin:0 auto;padding:0 20px}
+nav.rail{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
+nav.rail .inner{display:flex;align-items:center;gap:10px;max-width:920px;margin:0 auto;padding:0 20px}
+nav.rail ol{list-style:none;margin:0;padding:8px 0;display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0}
+.lang{display:flex;flex:none;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--sheet)}
+.lang button{border:0;background:transparent;padding:6px 11px;font-size:.85rem;color:var(--ink-soft)}
+.lang button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+nav.rail a{display:block;white-space:nowrap;text-decoration:none;color:var(--ink-soft);padding:6px 10px;border-radius:999px;font-size:.85rem;border:1px solid transparent}
+nav.rail a.on{color:var(--ink);background:var(--sheet);border-color:var(--line)}
+header.hero{padding:56px 0 28px}
+.lede{font-size:1.15rem;color:var(--ink-soft);max-width:60ch}
+section.step{padding:44px 0;border-top:1px solid var(--line)}
+.num{font-family:var(--serif);font-size:1rem;color:var(--pen);margin-bottom:6px}
+.play{background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:18px;margin:18px 0}
+.play > h3{margin-bottom:10px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{background:var(--sheet);border:1px solid var(--line);border-radius:8px;padding:8px 14px}
+.btn.on{background:var(--pen);border-color:var(--pen);color:#fff}
+@media (prefers-color-scheme: dark){.btn.on{color:#0F1626}}
+.btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.note{font-size:.88rem;color:var(--ink-soft)}
+.tag{display:inline-block;font-size:.8rem;padding:2px 8px;border-radius:4px;border:1px solid var(--line);color:var(--ink-soft)}
+/* the slip: the signature element */
+.slip{position:relative;background:var(--sheet);border:1px solid var(--line);border-left:6px solid var(--pen);border-radius:4px 10px 10px 4px;padding:18px 18px 14px 22px;margin:14px 0}
+.slip::before{content:"";position:absolute;left:6px;top:8px;bottom:8px;border-left:2px dotted var(--line)}
+.slip .id{font-family:var(--mono);font-size:.85rem;color:var(--ink-soft)}
+.slip .say{font-family:var(--serif);font-size:1.25rem;line-height:1.3;margin:6px 0}
+.slip .why{color:var(--ink-soft);margin:4px 0}
+.slip .sig{font-family:var(--serif);font-style:italic;color:var(--pen);border-top:1px solid var(--line);margin-top:10px;padding-top:8px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.stamp{display:inline-block;font-family:var(--serif);font-weight:700;letter-spacing:.06em;padding:2px 10px;border:2px solid currentColor;border-radius:4px;transform:rotate(-3deg)}
+.r-MUST{color:var(--must)} .r-SHOULD{color:var(--should)} .r-MAY{color:var(--may)}
+.bg-MUST{background:var(--must-soft)} .bg-SHOULD{background:var(--should-soft)} .bg-MAY{background:var(--may-soft)}
+.slip.r-MUST{border-left-color:var(--must);color:inherit} .slip.r-SHOULD{border-left-color:var(--should);color:inherit} .slip.r-MAY{border-left-color:var(--may);color:inherit}
+.part{border-radius:4px;cursor:pointer;border-bottom:2px dotted var(--pen)}
+.part.sel{background:var(--pen-soft)}
+.explain{min-height:3.2em;border-left:3px solid var(--pen);padding:6px 12px;margin-top:10px;background:var(--pen-soft);border-radius:0 6px 6px 0}
+pre{font-family:var(--mono);font-size:.82rem;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:12px;overflow-x:auto;white-space:pre-wrap;margin:10px 0}
+/* tokens demo */
+.tokens{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.token{border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;gap:10px;align-items:flex-start}
+.sw{width:34px;height:34px;border-radius:6px;flex:none}
+.token code{font-family:var(--mono);font-size:.8rem}
+.mock{border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--paper);max-width:340px}
+.mbtn{display:inline-block;border-radius:6px;padding:8px 14px;color:#fff;font-weight:600;border:0}
+/* sorter */
+.sort-item{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:8px 0}
+.sort-item .row{margin-top:6px}
+.fb{font-size:.9rem;margin-top:6px}
+.good{color:var(--ok)} .bad{color:var(--danger)}
+/* form */
+label{display:block;font-size:.9rem;color:var(--ink-soft);margin:10px 0 4px}
+textarea,input[type=text],select{width:100%;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:9px 10px}
+textarea{min-height:92px;resize:vertical}
+fieldset{border:0;padding:0;margin:10px 0}
+legend{font-size:.9rem;color:var(--ink-soft);padding:0;margin-bottom:6px}
+.choice{display:flex;gap:8px;align-items:flex-start;padding:6px 0}
+/* results */
+.result{border-radius:8px;padding:10px 12px;margin:8px 0;border:1px solid var(--line)}
+.result strong{font-family:var(--serif)}
+/* chart */
+.chart{display:grid;gap:8px;margin-top:12px}
+.bar-row{display:grid;grid-template-columns:minmax(120px,210px) 1fr 44px;gap:10px;align-items:center;font-size:.9rem}
+.track{background:var(--paper);border:1px solid var(--line);border-radius:5px;height:22px;overflow:hidden}
+.fill{height:100%;background:var(--ink-soft);transition:width .35s}
+.fill.sd{background:var(--pen)}
+/* flow scan */
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.screen{border:2px solid var(--line);border-radius:16px;padding:12px;background:var(--paper);min-height:230px;font-size:.88rem;position:relative}
+.screen h4{margin:0 0 8px;font-family:var(--serif);font-size:1rem}
+.el{border:1px solid var(--line);border-radius:6px;padding:6px 8px;margin:6px 0;background:var(--sheet)}
+.el.flag{border-color:var(--must);box-shadow:0 0 0 2px var(--must-soft)}
+.el.flag.soft{border-color:var(--should);box-shadow:0 0 0 2px var(--should-soft)}
+.el.fixed{border-color:var(--ok)}
+.ann{font-size:.8rem;margin-top:4px}
+/* lifecycle */
+.dots{display:flex;flex-wrap:wrap;gap:5px;margin:12px 0;min-height:26px}
+.dot{width:20px;height:26px;border-radius:3px;border:1px solid var(--line)}
+.dot.live{background:var(--pen)} .dot.noreason{background:var(--should)} .dot.promoted{background:var(--ok)} .dot.expired{background:transparent;border-style:dashed}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.85rem;color:var(--ink-soft)}
+.legend span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:6px;vertical-align:-1px;border:1px solid var(--line)}
+.legend .l1::before{background:var(--pen)} .legend .l2::before{background:var(--should)} .legend .l3::before{background:var(--ok)} .legend .l4::before{border-style:dashed}
+input[type=range]{width:100%}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.stat{border:1px solid var(--line);border-radius:8px;padding:10px}
+.stat b{font-family:var(--serif);font-size:1.6rem;display:block}
+/* layers */
+.layers{display:grid;gap:8px}
+.layer{display:grid;grid-template-columns:150px 1fr;gap:12px;border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--sheet);text-align:left;width:100%}
+.layer.on{border-color:var(--pen);box-shadow:0 0 0 2px var(--pen-soft)}
+.layer b{font-family:var(--serif)}
+@media (max-width:560px){.layer{grid-template-columns:1fr}.bar-row{grid-template-columns:1fr 1fr 36px}}
+table{border-collapse:collapse;width:100%;font-size:.92rem;margin:10px 0}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--serif)}
+.scroll{overflow-x:auto}
+details{border:1px solid var(--line);border-radius:8px;background:var(--sheet);margin:10px 0;padding:0 14px}
+summary{cursor:pointer;padding:12px 0;font-family:var(--serif);font-size:1.1rem}
+details[open]{padding-bottom:12px}
+footer{padding:36px 0 60px;color:var(--ink-soft);font-size:.9rem;border-top:1px solid var(--line)}
+ul{padding-left:1.2em;max-width:68ch}
+li{margin:.3em 0}
+
+/* developer view */
+.devhost{margin-top:16px}
+.devbtn{font-family:var(--mono);font-size:.82rem;border:1px dashed var(--ink-soft);background:transparent;border-radius:6px;padding:6px 10px;color:var(--ink-soft)}
+.devbtn:hover{color:var(--ink);border-color:var(--ink)}
+.dev{display:none;margin-top:14px;border:1px solid var(--pen);border-radius:8px;padding:16px;background:var(--sheet)}
+[data-dev="on"] .dev{display:block}
+.dev h3{font-family:var(--mono);font-size:1rem;font-weight:600;margin-bottom:8px}
+.dev .sk{font-size:.72rem;font-weight:400;border:1px solid var(--line);border-radius:4px;padding:1px 6px;margin-left:10px;color:var(--ink-soft);white-space:nowrap}
+.dev pre{color:var(--pen);background:#000;border-color:var(--line);white-space:pre;font-size:.8rem;line-height:1.5}
+:root[data-dev="on"]{color-scheme:dark;
+  --paper:#030603;--sheet:#0A120A;--ink:#D9FFDD;--ink-soft:#86C98D;--line:#1D3B20;
+  --pen:#39FF14;--pen-soft:#0E2A0B;
+  --must:#FF7AA8;--must-soft:#3A1024;--should:#FFC857;--should-soft:#3A2A06;--may:#5CF2D6;--may-soft:#0A332D;
+  --danger:#FF6B6B;--brand:#FF6F9C;--ok:#39FF14}
+[data-dev="on"] .btn.on{color:#030603}
+[data-dev="on"] .devbtn{color:var(--pen);border-color:var(--pen)}
+[data-dev="on"] .fill{background:#2E6B33}
+[data-dev="on"] .fill.sd{background:var(--pen)}
+</style>
+</head>
+<body>
+
+<nav class="rail" aria-label="Tutorial steps"><div class="inner"><ol id="rail"></ol><div class="lang" role="group" aria-label="Language / Langue"><button type="button" id="lEn" aria-pressed="true" lang="en" title="English">EN</button><button type="button" id="lFr" aria-pressed="false" lang="fr" title="Français">FR</button></div></div></nav>
+
+<header class="hero"><div class="wrap">
+  <h1>Who tells the AI what we decided?</h1>
+  <p class="lede">AI tools now build many of our screens. They follow the rules they are given and guess at the rest. This tutorial shows a small practice, Signed Decisions, for getting a team’s product decisions to the machine with a name, a rank and an end date attached.</p>
+  <div class="slip r-MUST" aria-label="Example signed decision">
+    <div class="row" style="justify-content:space-between"><span class="id">DEC-0004</span><span class="stamp r-MUST">MUST</span></div>
+    <div class="say">Confirm before any action that removes data or moves money.</div>
+    <div class="why">Because in shared accounts the harm falls on the person who didn’t act.</div>
+    <div class="sig"><span>Product and Legal</span><span>review Oct 2027</span></div>
+  </div>
+  <p class="note">That slip is the whole idea. Nine short steps follow, each with something to try. Examples come from Harbor, a fictional bank used in the experiment behind this work.</p>
+</div></header>
+
+<main>
+
+<!-- 1 -->
+<section class="step" id="s1" data-title="Why AI guesses"><div class="wrap">
+  <div class="num">Step 1</div>
+  <h2>A value is not a meaning</h2>
+  <p>A design token stores a value, such as a colour. Two reds can sit side by side in the file with nothing to say which one means danger. An AI asked for a Delete button has to guess.</p>
+  <div class="play">
+    <h3>Try it: describe the tokens</h3>
+    <div class="row"><button class="btn on" id="tokOff">Values only</button><button class="btn" id="tokOn">Add one sentence each</button></div>
+    <div class="tokens" style="margin-top:12px">
+      <div class="token"><span class="sw" style="background:var(--brand)"></span><div><code>color.brand.accent</code><div class="note" id="tokD1">no description</div></div></div>
+      <div class="token"><span class="sw" style="background:var(--danger)"></span><div><code>color.feedback.danger</code><div class="note" id="tokD2">no description</div></div></div>
+      <div class="token"><span class="sw" style="background:var(--ink-soft)"></span><div><code>motion.duration.fast</code><div class="note" id="tokD3">150 ms</div></div></div>
+    </div>
+    <p style="margin-top:14px">The AI builds:</p>
+    <div class="mock"><div style="margin-bottom:8px">Remove payee “L. Martin”?</div><span class="mbtn" id="tokBtn" style="background:var(--brand)">Delete</span>
+      <div class="note" id="tokMsg" style="margin-top:8px">It picked the brand red. Nothing told it otherwise.</div></div>
+    <p class="note">An illustration of Romina Kavcic’s 2026 example. In the Harbor experiment, a one-line description was enough for this kind of case: the danger colour was right in 4 or 5 of 5 runs in every setup.</p>
+  </div>
+  <p>So the first lesson is modest. For anything a token can carry, describe the token. Signed Decisions is for what a token cannot carry.</p>
+</div></section>
+
+<!-- 2 -->
+<section class="step" id="s2" data-title="Where things live"><div class="wrap">
+  <div class="num">Step 2</div>
+  <h2>Three homes, one fact in each</h2>
+  <p>Not everything is a decision. Following Cassie Groos’s principle of “one origin per fact”, each piece of knowledge gets exactly one home.</p>
+  <div class="scroll"><table>
+    <tr><th>Home</th><th>Holds</th><th>Example</th></tr>
+    <tr><td>Token</td><td>A value and what it is for</td><td>How fast a panel slides in</td></tr>
+    <tr><td>CRD (Component Requirements Document)</td><td>What one component must do, and why</td><td>A button has one icon, never two</td></tr>
+    <tr><td>Signed decision</td><td>A rule that crosses components and has consequences</td><td>Anything that moves money confirms first</td></tr>
+  </table></div>
+  <div class="play">
+    <h3>Try it: sort these six</h3>
+    <div id="sorter"></div>
+    <p class="note" id="sortScore"></p>
+  </div>
+  <p class="note">The CRD, or Component Requirements Document, is Cassie Groos’s work: one plain-language file per component, co-authored by product managers, designers and developers and maintained by the AI agents that work from it. Signed Decisions sits beside it and does not replace it.</p>
+</div></section>
+
+<!-- 3 -->
+<section class="step" id="s3" data-title="Anatomy"><div class="wrap">
+  <div class="num">Step 3</div>
+  <h2>What a signed decision contains</h2>
+  <p>One record, two depths. The top is short and goes to the AI. The evidence underneath stays with the team unless someone asks for it.</p>
+  <div class="play">
+    <h3>Try it: tap any underlined part</h3>
+    <div class="slip r-MUST">
+      <div class="row" style="justify-content:space-between"><span class="id part" data-k="id">DEC-0004</span><span class="stamp r-MUST part" data-k="rank">MUST</span></div>
+      <div class="say"><span class="part" data-k="say">Confirm before any action that removes data or moves money.</span></div>
+      <div class="why"><span class="part" data-k="why">Because in shared accounts the harm falls on the person who didn’t act.</span></div>
+      <div class="why"><span class="part" data-k="not">Not: an undo toast. Do: a dialog that names what will be lost.</span></div>
+      <div class="why"><span class="part" data-k="scope">Applies to: destructive actions, payments</span></div>
+      <div class="sig"><span class="part" data-k="sig">Product and Legal</span><span class="part" data-k="exp">review Oct 2027</span></div>
+      <div class="why" style="margin-top:10px"><span class="part" data-k="ev">Evidence (kept with the team)</span></div>
+    </div>
+    <div class="explain" id="anatExplain">Tap a part to see what it is for.</div>
+    <div class="row" style="margin-top:12px"><button class="btn on" id="viewFull">What the team sees</button><button class="btn" id="viewAgent">What the AI receives</button><button class="btn" id="viewDoubt">When the AI is unsure</button></div>
+    <pre id="anatView"></pre>
+    <p class="note" id="anatNote"></p>
+  </div>
+  <p>Most of the time the short line is enough. When the AI cannot tell whether a decision applies to the case in front of it, it first reads the justification. If that does not settle it, it asks the person who launched it to make the call, with one line on why, and finishes the work. Afterwards it logs the question and the call, marks the work, and flags it to the decision’s signers, who confirm, reword or overrule it.</p>
+</div></section>
+
+<!-- 4 -->
+<section class="step" id="s4" data-title="Record now, justify later"><div class="wrap">
+  <div class="num">Step 4</div>
+  <h2>Record it now, justify it later</h2>
+  <p>Recording a decision and justifying it are two separate acts. The decision is recorded the moment it is made, in about ten seconds, with a one-line reason. The fuller justification, meaning the evidence behind it, can be added later and only if it is needed.</p>
+  <p>Nobody is asked to compose a perfect sentence either. An assistant asks three questions, and rewrites the answer in Plain English or in a controlled technical English adjusted for the industry, so every decision in the folder reads the same way and uses the same words for the same things.</p>
+  <div class="play">
+    <h3>Try it: capture a decision</h3>
+    <label for="wSay">1. What did you decide? Rough is fine.</label>
+    <input type="text" id="wSay" value="dont show full acct numbers on shared screens pls">
+    <fieldset><legend>2. What breaks if this ships wrong?</legend>
+      <div class="choice"><input type="radio" name="wRank" id="wr1" value="MUST" checked><label for="wr1" style="margin:0;color:var(--ink)">Law, money or safety</label></div>
+      <div class="choice"><input type="radio" name="wRank" id="wr2" value="SHOULD"><label for="wr2" style="margin:0;color:var(--ink)">The product becomes inconsistent</label></div>
+      <div class="choice"><input type="radio" name="wRank" id="wr3" value="MAY"><label for="wr3" style="margin:0;color:var(--ink)">Nothing yet, it is a working preference</label></div>
+    </fieldset>
+    <label for="wWhy">3. Why, in one line?</label>
+    <input type="text" id="wWhy" value="A joint holder may be looking at the same device">
+    <label for="wSig">Your function, for example Product Design</label>
+    <input type="text" id="wSig" value="R. Okafor, Product Management">
+    <label for="wEv">Justification (optional, can be added later)</label>
+    <input type="text" id="wEv" value="" placeholder="For example: 4 complaints in September about shared tablets">
+    <div class="result" id="wLang" style="margin-top:14px"></div>
+    <div id="wSlip"></div>
+    <p class="note" id="wNote"></p>
+  </div>
+  <p>The one-line reason is asked for at the start because it costs seconds and is hard to reconstruct later. Everything longer waits. A decision still without a justification at its review is flagged to its signer, who adds one, renews it as it stands, or lets it lapse.</p>
+  <p class="note">The wording correction shown here is a small word list for demonstration. A real assistant would use the team’s own glossary.</p>
+</div></section>
+
+<!-- 5 -->
+<section class="step" id="s5" data-title="Check a brief"><div class="wrap">
+  <div class="num">Step 5</div>
+  <h2>The brief gets checked before anything is built</h2>
+  <p>When someone writes a brief or a prompt, the same assistant compares it with the standing decisions. If the brief contradicts one, it asks. If the brief merely touches one, it pins that decision’s ID to the brief so the builder receives it.</p>
+  <div class="play">
+    <h3>Try it: check a brief</h3>
+    <div class="row" id="briefPresets"></div>
+    <label for="brief">Brief</label>
+    <textarea id="brief"></textarea>
+    <div class="row" style="margin-top:10px"><button class="btn primary" id="briefRun">Check this brief</button></div>
+    <div id="briefOut" style="margin-top:12px"></div>
+    <p class="note">This is a simplified simulation using keyword matching. In the real design, exact scope tags are matched first, likely matches are marked “possible” for a person to confirm, and no more than five decisions are attached, MUST first.</p>
+  </div>
+</div></section>
+
+<!-- 6 -->
+<section class="step" id="s6" data-title="When rules collide"><div class="wrap">
+  <div class="num">Step 6</div>
+  <h2>When two decisions collide, rank settles it</h2>
+  <p>This is the part with evidence behind it. A plain list of rules gives an AI no way to choose between two that both apply.</p>
+  <div class="play">
+    <h3>Try it: pick two decisions</h3>
+    <div class="row"><div style="flex:1;min-width:200px"><label for="cA">First</label><select id="cA"></select></div><div style="flex:1;min-width:200px"><label for="cB">Second</label><select id="cB"></select></div></div>
+    <div id="cOut" style="margin-top:12px"></div>
+  </div>
+  <div class="play">
+    <h3>What the experiment found</h3>
+    <p class="note">The same AI received the same brief six different ways, five runs each. The brief hid a collision: removing saved payees from a table. Choose a check to see how many runs passed.</p>
+    <div class="row" id="chartPick"></div>
+    <div class="chart" id="chart"></div>
+    <p class="note" id="chartNote"></p>
+  </div>
+</div></section>
+
+<!-- 7 -->
+<section class="step" id="s7" data-title="Scan the result"><div class="wrap">
+  <div class="num">Step 7</div>
+  <h2>A second look at the finished flow</h2>
+  <p>Designs change after the brief. Before a flow is handed to developers, the assistant scans it against the decisions and leaves short notes. It advises and asks. It does not block. Hard enforcement comes later, from automated checks.</p>
+  <div class="play">
+    <h3>Try it: scan a flow that drifted</h3>
+    <div class="row"><button class="btn primary" id="scanRun">Scan this flow</button><button class="btn" id="scanFix" disabled>Apply the fixes</button><button class="btn" id="scanReset">Reset</button></div>
+    <div class="flow" id="flow" style="margin-top:14px"></div>
+    <p class="note" id="scanMsg" style="margin-top:10px">Three screens for closing a savings account. Something slipped during iteration.</p>
+  </div>
+  <p class="note">Designers keep working on the canvas throughout. Decisions limit what a screen may do; they never dictate how it looks.</p>
+</div></section>
+
+<!-- 8 -->
+<section class="step" id="s8" data-title="The folder empties"><div class="wrap">
+  <div class="num">Step 8</div>
+  <h2>Decisions are meant to leave</h2>
+  <p>A decision that holds up moves into a more permanent home: a component’s CRD, a token, or an automated check. One that stops being true expires. The set should stay small enough to read in a sitting.</p>
+  <div class="play">
+    <h3>Try it: move through six months</h3>
+    <label for="wk">Week <span id="wkN">0</span></label>
+    <input type="range" id="wk" min="0" max="24" value="0">
+    <div class="dots" id="dots" aria-hidden="true"></div>
+    <div class="legend"><span class="l1">live, with a reason</span><span class="l2">live, reason missing</span><span class="l3">promoted</span><span class="l4">expired</span></div>
+    <div class="stats" style="margin-top:12px">
+      <div class="stat"><b id="stLive">0</b>in the folder</div>
+      <div class="stat"><b id="stDebt">0</b>waiting for a reason</div>
+      <div class="stat"><b id="stProm">0</b>promoted</div>
+      <div class="stat"><b id="stExp">0</b>expired</div>
+    </div>
+    <p class="note">Illustrative numbers. No team has run this lifecycle yet.</p>
+  </div>
+</div></section>
+
+<!-- 9 -->
+<section class="step" id="s9seed" data-title="Seed the folder"><div class="wrap">
+  <div class="num">Step 9</div>
+  <h2>The folder can seed itself</h2>
+  <p>An empty folder is the hardest moment for any new practice. On adoption, the assistant can read what the team has already produced, such as the last twenty briefs, the design flows, the code that shipped and the meeting notes, and draft the first twenty decisions from them. Nothing it drafts is live until the function that owns the rule signs it.</p>
+  <div class="play">
+    <h3>Try it: seed from past work</h3>
+    <fieldset><legend>Sources to read</legend><div class="row" id="seedSrc"></div></fieldset>
+    <div class="row"><button class="btn primary" id="seedRun" type="button">Draft the first decisions</button><button class="btn" id="seedReset" type="button">Reset</button></div>
+    <div id="seedOut" style="margin-top:12px"></div>
+    <p class="note" id="seedMsg">Choose the sources, then draft.</p>
+    <p class="note">Illustrative and untested. The examples and counts are invented to show the idea.</p>
+  </div>
+  <p>The same reading shows where decisions are missing or contradict each other, for example no record of Legal being consulted, or two teams that have drifted apart without anyone choosing. A gap means no record was found, which is not proof that nothing happened. Findings are reported by role and team, never by person, and only shared work documents are read.</p>
+</div></section>
+
+<!-- reference -->
+<section class="step" id="s9" data-title="The full concept"><div class="wrap">
+  <div class="num">Reference</div>
+  <h2>The full concept</h2>
+  <p>For readers who want the complete picture: who writes what, how it reaches the machine, how known problems are handled, and what has and has not been shown.</p>
+
+  <div class="play">
+    <h3>Four layers</h3>
+    <div class="layers" id="layers"></div>
+    <div class="explain" id="layerExplain"></div>
+  </div>
+
+  <details open><summary>What it is</summary>
+    <p>Signed Decisions is a small folder of short product decisions, with an assistant skill and a small tool that read them. Each decision has a rank, a scope, a one-line reason, the functions that signed it and a review date. The skill is used when a decision is captured, when a brief is written, before an AI builds, and when a finished flow or a published design file is checked.</p>
+    <p>It is built to sit beside Cassie Groos’s CRDs (Component Requirements Documents). A CRD holds what one component must do. Signed decisions hold the rules that belong to no single component, which a CRD can cite.</p>
+  </details>
+
+  <details><summary>The record format (proposed)</summary>
+<pre>---
+id: DEC-0004
+status: accepted
+rank: MUST
+scope: [action:delete, action:transfer, state:destructive]
+decision-makers: [product, legal]
+review: 2027-10
+justification: history/destructive-actions.md
+verify: confirm-before-destructive
+---
+Any action that removes data or moves money MUST confirm first.
+Because in shared accounts the harm falls on the person who did not act.
+Not: immediate action with an undo toast.
+Do: a dialog that names what will be lost.</pre>
+    <p class="note">One short file per decision. The justification is not copied into it: the file links to the history entry that explains the decision. A sample folder in this format, and a tool that checks it, are in the Sig-Dec repository on GitHub (phillipsanders/Sig-Dec).</p>
+  </details>
+
+  <details><summary>How it reaches the machine</summary>
+    <ul>
+      <li><b>At adoption.</b> The assistant reads recent briefs, flows, code and meeting notes, drafts the first decisions and reports gaps. Every draft waits for a signature.</li>
+      <li><b>At capture.</b> A three-question interview records the decision at once, with a one-line reason, and sets the rank. The assistant rewrites the wording in Plain English or a controlled technical English adjusted for the industry. The function that owns the rule signs by approving it. The justification is a separate, later step.</li>
+      <li><b>At the brief.</b> The skill checks the draft, asks about contradictions, and pins the IDs of decisions the work touches.</li>
+      <li><b>At build.</b> The AI receives only the pinned decisions, top part only, strictest first, five at most. The file of standing instructions the AI always reads is generated from the folder, never written by hand: it holds a pointer to the decisions and the few that apply to every task.</li>
+      <li><b>When in doubt.</b> If the AI cannot tell whether a decision applies, it reads that decision’s justification. If it is still unsure, it asks the person who launched it to make the call, finishes the work, then logs the call and flags it to the decision’s signers.</li>
+      <li><b>At review.</b> The skill scans the finished flow and annotates deviations. A decision can also name a check that runs each time the design file is published; a failure goes to its signers.</li>
+      <li><b>Over time.</b> Stable decisions are promoted into a CRD statement, a token or an automated check.</li>
+    </ul>
+  </details>
+
+  <details><summary>How four known problems are handled</summary>
+    <div class="scroll"><table>
+      <tr><th>Problem</th><th>Answer in the design</th></tr>
+      <tr><td>A skill in a code repository only reaches people who use developer tools</td><td>One folder, several doors. The same check is offered where briefs are written: a ticket tool, a document, a design tool. Each door is a thin window onto an assistant that can see the folder, never a separate form</td></tr>
+      <tr><td>Matching a brief to decisions by meaning can miss or raise false alarms</td><td>Exact scope tags first. Meaning-based matches are labelled “possible” and need a person’s confirmation. The pinned list is visible on the brief, and capped at five</td></tr>
+      <tr><td>An AI scanning a flow is an unreliable gatekeeper</td><td>The scan only advises. Blocking is done by ordinary automated checks, and only for decisions that have been promoted into one</td></tr>
+      <tr><td>Everything gets filed as a decision</td><td>A sorting rule: a value is a token; one component’s behaviour belongs in its CRD; a decision is cross-cutting, has consequences, and someone could plausibly propose the opposite</td></tr>
+    </table></div>
+    <p>Three earlier problems are also addressed. A decision without a reason is not accepted, though the reason is one line. When two decisions disagree, the stricter rank wins; at the same rank, the one that names the other as overridden, then the narrower scope, then the author of the brief. Two MUSTs that conflict always go to a person, with both signers named. And usage figures are shown privately to the writer and by role to everyone else, under the rule “ask me why, never blame me when”.</p>
+  </details>
+
+  <details open><summary>What is shown, and what is not</summary>
+    <div class="scroll"><table>
+      <tr><th>Shown in one experiment</th><th>Not yet shown</th></tr>
+      <tr><td>Ranked, scoped decisions delivered at build time resolved a collision: 9 of 10 runs visibly, 10 of 10 counting one hidden dialog, against 0 of 20 for every other setup</td><td>That people will write decisions and keep writing them</td></tr>
+      <tr><td>A plain rules file noticed the collision in 5 of 5 runs and still chose the unsafe option</td><td>The brief check, the finished-flow scan, and the AI reading a justification or asking the designer when unsure</td></tr>
+      <tr><td>Out-of-scope decisions were opened and not applied, in 10 of 10 runs</td><td>Whether the AI needs the reason or only the rank</td></tr>
+      <tr><td>Described tokens alone handled the simple colour case</td><td>Any saving in cost or time, and any gain in consistency: the experiment found none</td></tr>
+      <tr><td></td><td>That record-now, justify-later capture keeps people writing, and that corrected wording improves results</td></tr>
+      <tr><td></td><td>That seeding from past work produces decisions people are willing to sign</td></tr>
+    </table></div>
+    <p class="note">One model, one banking flow, five runs per setup, automated checks. No person scored the results. Treat it as a strong signal on one case. The decisions in the experiment used the strictness words working, binding and mandatory; MUST, SHOULD and MAY came afterwards and have not yet been tested.</p>
+  </details>
+
+  <details><summary>Credits and sources</summary>
+    <ul>
+      <li>The CRD (Component Requirements Document) and “one origin per fact”: Cassie Groos, “Probabilistic isn’t a dirty word…”, 2026.</li>
+      <li>The token description example: Romina Kavcic, 2026.</li>
+      <li>The survey of how design systems deliver context to AI: Kaelig Deloumeau-Prigent, 2026.</li>
+      <li>Why decision capture fails: Jonathan Grudin, 1996; Buchgeher and colleagues, 2023.</li>
+      <li>The one-sentence decision shape: Zdun, Capilla, Tran and Zimmermann, 2013. Rank words: RFC 2119.</li>
+      <li>Experiment 1, concluded 5 October 2026: the protocol, the report and every run are in the Sig-Dec repository on GitHub (phillipsanders/Sig-Dec), folder experiment.</li>
+    </ul>
+  </details>
+</div></section>
+
+</main>
+
+<footer><div class="wrap">Signed Decisions is a concept by Phillip Sanders. Harbor, its decisions and its signers are fictional. Simulations on this page are simplified for teaching.</div></footer>
+
+<script>
+(function(){
+"use strict";
+var $=function(id){return document.getElementById(id);};
+function el(tag,cls,html){var e=document.createElement(tag);if(cls)e.className=cls;if(html!==undefined)e.innerHTML=html;return e;}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+
+/* ---------- language ---------- */
+var lang="en";
+function nb(s){return s.replace(/ ([:;?!])/g,"\u00a0$1").replace(/« /g,"«\u00a0").replace(/ »/g,"\u00a0»");}
+function T(en,fr){return lang==="fr"?nb(fr):en;}
+function L(p){return lang==="fr"?nb(p[1]):p[0];}
+
+/* static text: collect every text-bearing element once, before anything dynamic is drawn */
+var picked=[];
+(function(){var all=document.body.querySelectorAll("*");
+  for(var i=0;i<all.length;i++){var e=all[i];if(e.closest("nav.rail")||e.tagName==="SCRIPT"||e.tagName==="STYLE")continue;
+    var direct=false;for(var j=0;j<e.childNodes.length;j++){var n=e.childNodes[j];if(n.nodeType===3&&n.nodeValue.trim()){direct=true;break;}}
+    if(!direct)continue;var anc=false;for(var k=0;k<picked.length;k++){if(picked[k].contains(e)){anc=true;break;}}
+    if(!anc)picked.push(e);}
+})();
+var EN=picked.map(function(e){return e.innerHTML;});
+var FRS=["Qui dit à l’IA ce que nous avons décidé ?", "Les outils d’IA construisent désormais une bonne partie de nos écrans. Ils suivent les règles qu’on leur donne et devinent le reste. Ce tutoriel présente une pratique légère, Signed Decisions, pour transmettre à la machine les décisions produit d’une équipe, avec un nom, un rang et une date de fin.", "DEC-0004", "MUST", "Confirmer avant toute action qui supprime des données ou déplace de l’argent.", "Parce que, sur un compte joint, le préjudice retombe sur la personne qui n’a pas agi.", "Produit et Juridique", "révision oct. 2027", "Cette fiche résume toute l’idée. Neuf courtes étapes suivent, chacune avec une manipulation à essayer. Les exemples viennent de Harbor, une banque fictive utilisée dans l’expérience à l’origine de ce travail.", "Étape 1", "Une valeur n’est pas un sens", "Un design token stocke une valeur, par exemple une couleur. Deux rouges peuvent coexister dans le fichier sans que rien n’indique lequel signifie « danger ». Une IA à qui l’on demande un bouton Supprimer doit deviner.", "À vous : décrivez les tokens", "Valeurs seules", "Ajouter une phrase à chacun", "color.brand.accent", "aucune description", "color.feedback.danger", "aucune description", "motion.duration.fast", "150 ms", "L’IA construit :", "Supprimer le bénéficiaire « L. Martin » ?", "Supprimer", "Elle a choisi le rouge de la marque. Rien ne lui disait le contraire.", "Illustration de l’exemple de Romina Kavcic (2026). Dans l’expérience Harbor, une description d’une ligne a suffi pour ce type de cas : la couleur de danger était correcte dans 4 ou 5 générations sur 5, quelle que soit la configuration.", "La première leçon est donc modeste. Tout ce qu’un token peut porter, décrivez-le dans le token. Signed Decisions sert à ce qu’un token ne peut pas porter.", "Étape 2", "Trois emplacements, un fait dans chacun", "Tout n’est pas une décision. Selon le principe de Cassie Groos, « une seule origine par fait », chaque connaissance a un seul emplacement.", "Emplacement", "Contient", "Exemple", "Token", "Une valeur et son usage", "La vitesse d’ouverture d’un panneau", "CRD (Component Requirements Document)", "Ce qu’un composant doit faire, et pourquoi", "Un bouton porte une icône, jamais deux", "Décision signée", "Une règle qui traverse les composants et a des conséquences", "Toute action qui déplace de l’argent demande d’abord une confirmation", "À vous : classez ces six énoncés", "Le CRD, ou Component Requirements Document, est le travail de Cassie Groos : un fichier en langage clair par composant, co-écrit par les product managers, les designers et les développeurs, et tenu à jour par les agents IA qui s’en servent. Signed Decisions se place à côté et ne le remplace pas.", "Étape 3", "Ce que contient une décision signée", "Une fiche, deux niveaux. Le haut est court et part vers l’IA. Les éléments de preuve, en dessous, restent dans l’équipe sauf si quelqu’un les demande.", "À vous : touchez un élément souligné", "DEC-0004", "MUST", "Confirmer avant toute action qui supprime des données ou déplace de l’argent.", "Parce que, sur un compte joint, le préjudice retombe sur la personne qui n’a pas agi.", "À éviter : un toast d’annulation. À faire : une boîte de dialogue qui nomme ce qui sera perdu.", "S’applique à : actions destructrices, paiements", "Produit et Juridique", "révision oct. 2027", "Justification (conservée par l’équipe)", "Touchez un élément pour voir à quoi il sert.", "Ce que voit l’équipe", "Ce que reçoit l’IA", "Quand l’IA a un doute", "La plupart du temps, la ligne courte suffit. Quand l’IA ne peut pas déterminer si une décision s’applique au cas présent, elle lit d’abord la justification. Si cela ne suffit pas, elle demande à la personne qui l’a lancée de trancher, avec une ligne d’explication, et termine le travail. Ensuite, elle consigne la question et le choix, marque le travail et le signale aux signataires de la décision, qui confirment, reformulent ou annulent ce choix.", "Étape 4", "Enregistrer maintenant, justifier plus tard", "Enregistrer une décision et la justifier sont deux actes distincts. La décision est enregistrée au moment où elle est prise, en dix secondes environ, avec une raison d’une ligne. La justification complète, c’est-à-dire les éléments qui l’appuient, peut être ajoutée plus tard, et seulement si elle est nécessaire.", "Personne n’a non plus à rédiger une phrase parfaite. Un assistant pose trois questions et reformule la réponse en langage clair (Plain English) ou dans un anglais technique contrôlé adapté au secteur, afin que toutes les décisions du dossier se lisent de la même façon et emploient les mêmes mots pour les mêmes choses.", "À vous : enregistrez une décision", "1. Qu’avez-vous décidé ? Un brouillon suffit.", "2. Qu’est-ce qui casse si c’est faux en production ?", "La loi, l’argent ou la sécurité", "Le produit devient incohérent", "Rien pour l’instant, c’est une préférence de travail", "3. Pourquoi, en une ligne ?", "Votre fonction, par exemple Product Design", "Justification (facultative, peut être ajoutée plus tard)", "La raison d’une ligne est demandée dès le départ parce qu’elle coûte quelques secondes et se reconstitue mal après coup. Tout ce qui est plus long attend. Une décision encore sans justification à sa révision est signalée à son signataire, qui en ajoute une, la reconduit telle quelle ou la laisse expirer.", "La correction de formulation montrée ici repose sur une petite liste de mots, pour la démonstration. Un véritable assistant utiliserait le glossaire de l’équipe.", "Étape 5", "Le brief est vérifié avant toute construction", "Quand quelqu’un rédige un brief ou un prompt, le même assistant le compare aux décisions en vigueur. Si le brief en contredit une, il pose la question. Si le brief en touche simplement une, il épingle l’identifiant de cette décision au brief pour que l’IA qui construit la reçoive.", "À vous : vérifiez un brief", "Brief", "Vérifier ce brief", "Simulation simplifiée par mots-clés. Dans la conception réelle, les étiquettes de périmètre exactes sont comparées d’abord, les correspondances probables sont marquées « possible » pour confirmation par une personne, et cinq décisions au plus sont jointes, les MUST en premier.", "Étape 6", "Quand deux décisions se heurtent, le rang tranche", "C’est la partie appuyée par des résultats. Une simple liste de règles ne donne à l’IA aucun moyen de choisir entre deux règles qui s’appliquent toutes les deux.", "À vous : choisissez deux décisions", "Première", "Seconde", "Ce que l’expérience a montré", "La même IA a reçu le même brief de six façons différentes, cinq générations chacune. Le brief cachait un conflit : la suppression de bénéficiaires enregistrés dans un tableau. Choisissez un contrôle pour voir combien de générations l’ont réussi.", "Étape 7", "Un second regard sur le parcours terminé", "Les maquettes évoluent après le brief. Avant qu’un parcours ne soit remis aux développeurs, l’assistant le compare aux décisions et laisse de courtes notes. Il conseille et questionne. Il ne bloque pas. Le contrôle strict vient plus tard, par des vérifications automatisées.", "À vous : analysez un parcours qui a dérivé", "Analyser ce parcours", "Appliquer les corrections", "Réinitialiser", "Trois écrans pour clôturer un compte d’épargne. Quelque chose a glissé au fil des itérations.", "Les designers continuent de travailler sur le canevas tout du long. Les décisions limitent ce qu’un écran peut faire ; elles ne dictent jamais son apparence.", "Étape 8", "Les décisions ont vocation à partir", "Une décision qui tient dans la durée rejoint un emplacement plus permanent : le CRD d’un composant, un token ou une vérification automatisée. Celle qui cesse d’être vraie expire. L’ensemble doit rester assez court pour être lu d’une traite.", "À vous : parcourez six mois", "Semaine <span id=\"wkN\">0</span>", "en vigueur, avec une raison", "en vigueur, raison manquante", "promue", "expirée", "<b id=\"stLive\">0</b>dans le dossier", "<b id=\"stDebt\">0</b>en attente d’une raison", "<b id=\"stProm\">0</b>promues", "<b id=\"stExp\">0</b>expirées", "Chiffres illustratifs. Aucune équipe n’a encore suivi ce cycle de vie.", "Étape 9", "Le dossier peut s’amorcer lui-même", "Un dossier vide est le moment le plus difficile pour toute nouvelle pratique. À l’adoption, l’assistant peut lire ce que l’équipe a déjà produit, par exemple les vingt derniers briefs, les parcours conçus, le code livré et les comptes rendus de réunion, et en tirer les vingt premières décisions à l’état de brouillon. Rien de ce qu’il rédige n’entre en vigueur tant que la fonction responsable de la règle ne l’a pas signé.", "À vous : amorcez à partir du travail passé", "Sources à lire", "Rédiger les premières décisions", "Réinitialiser", "Choisissez les sources, puis lancez la rédaction.", "Illustratif et non testé. Les exemples et les chiffres sont inventés pour montrer l’idée.", "La même lecture montre où des décisions manquent ou se contredisent, par exemple aucune trace d’une consultation du Juridique, ou deux équipes qui ont divergé sans que personne ne tranche. Un manque signifie qu’aucune trace n’a été trouvée, pas que rien n’a eu lieu. Les constats sont présentés par rôle et par équipe, jamais par personne, et seuls les documents de travail partagés sont lus.", "Référence", "Le concept complet", "Pour celles et ceux qui veulent la vue d’ensemble : qui écrit quoi, comment cela parvient à la machine, comment les problèmes connus sont traités, et ce qui a été démontré ou non.", "Quatre couches", "Ce que c’est", "Signed Decisions est un petit dossier de courtes décisions produit, accompagné d’un skill d’assistant et d’un petit outil qui les lisent. Chaque décision porte un rang, un périmètre, une raison d’une ligne, les fonctions qui l’ont signée et une date de révision. Le skill sert quand une décision est enregistrée, quand un brief est rédigé, avant qu’une IA construise, et quand un parcours terminé ou un fichier de design publié est vérifié.", "Il est conçu pour se placer à côté des CRD (Component Requirements Documents) de Cassie Groos. Un CRD contient ce qu’un composant doit faire. Les décisions signées contiennent les règles qui n’appartiennent à aucun composant en particulier, et qu’un CRD peut citer.", "Le format de la fiche (proposition)", "---\nid: DEC-0004\nstatus: accepted\nrank: MUST\nscope: [action:delete, action:transfer, state:destructive]\ndecision-makers: [product, legal]\nreview: 2027-10\njustification: history/destructive-actions.md\nverify: confirm-before-destructive\n---\nToute action qui supprime des données ou déplace de l'argent MUST être confirmée d'abord.\nParce que, sur un compte joint, le préjudice retombe sur la personne qui n'a pas agi.\nÀ éviter : une action immédiate avec un toast d'annulation.\nÀ faire : une boîte de dialogue qui nomme ce qui sera perdu.", "Un court fichier par décision. La justification n’y est pas recopiée : le fichier renvoie à l’entrée d’historique qui explique la décision. Un dossier d’exemple dans ce format, et un outil qui le vérifie, se trouvent dans le dépôt Sig-Dec sur GitHub (phillipsanders/Sig-Dec).", "Comment cela parvient à la machine", "<b>À l’adoption.</b> L’assistant lit les briefs, parcours, code et comptes rendus récents, propose les premières décisions à l’état de brouillon et signale les manques. Chaque brouillon attend une signature.", "<b>À l’enregistrement.</b> Un entretien en trois questions enregistre la décision immédiatement, avec une raison d’une ligne, et fixe le rang. L’assistant reformule en langage clair ou dans un anglais technique contrôlé adapté au secteur. La fonction responsable de la règle signe en l’approuvant. La justification est une étape distincte, ultérieure.", "<b>Au moment du brief.</b> Le skill vérifie le brouillon, questionne les contradictions et épingle les identifiants des décisions que le travail touche.", "<b>À la construction.</b> L’IA ne reçoit que les décisions épinglées, partie haute seulement, les plus strictes d’abord, cinq au maximum. Le fichier d’instructions permanentes que l’IA lit toujours est généré à partir du dossier, jamais écrit à la main : il contient un renvoi vers les décisions et les quelques-unes qui s’appliquent à toute tâche.", "<b>En cas de doute.</b> Si l’IA ne peut pas déterminer si une décision s’applique, elle lit sa justification. Si le doute persiste, elle demande à la personne qui l’a lancée de trancher, termine le travail, puis consigne ce choix et le signale aux signataires de la décision.", "<b>À la relecture.</b> Le skill analyse le parcours terminé et annote les écarts. Une décision peut aussi nommer une vérification lancée à chaque publication du fichier de design ; un échec est transmis à ses signataires.", "<b>Dans la durée.</b> Les décisions stables sont promues dans un énoncé de CRD, un token ou une vérification automatisée.", "Comment quatre problèmes connus sont traités", "Problème", "Réponse dans la conception", "Un skill placé dans un dépôt de code n’atteint que les personnes qui utilisent des outils de développement", "Un dossier, plusieurs portes. La même vérification est proposée là où les briefs s’écrivent : un outil de tickets, un document, un outil de design. Chaque porte est une fenêtre légère sur un assistant qui voit le dossier, jamais un formulaire séparé", "Rapprocher un brief des décisions par le sens peut manquer des cas ou déclencher de fausses alertes", "Les étiquettes de périmètre exactes d’abord. Les rapprochements par le sens sont marqués « possible » et demandent la confirmation d’une personne. La liste épinglée est visible sur le brief et plafonnée à cinq", "Une IA qui analyse un parcours est un garde-barrière peu fiable", "L’analyse ne fait que conseiller. Le blocage revient à des vérifications automatisées ordinaires, et seulement pour les décisions qui ont été promues en vérification", "Tout finit classé comme décision", "Une règle de tri : une valeur est un token ; le comportement d’un seul composant va dans son CRD ; une décision est transversale, a des conséquences, et quelqu’un pourrait raisonnablement proposer l’inverse", "Trois problèmes antérieurs sont aussi traités. Une décision sans raison n’est pas acceptée, même si la raison tient en une ligne. Quand deux décisions se contredisent, le rang le plus strict l’emporte ; à rang égal, celle qui nomme l’autre comme remplacée, puis le périmètre le plus étroit, puis l’auteur du brief. Deux MUST en conflit vont toujours à une personne, les deux signataires étant nommés. Et les chiffres d’usage sont montrés en privé à l’auteur et par rôle à tous les autres, selon la règle « demandez-moi pourquoi, ne me reprochez jamais quand ».", "Ce qui est démontré, et ce qui ne l’est pas", "Démontré dans une expérience", "Pas encore démontré", "Des décisions classées par rang et par périmètre, transmises à la construction, ont résolu un conflit : 9 générations sur 10 de façon visible, 10 sur 10 en comptant une boîte de dialogue masquée, contre 0 sur 20 pour toutes les autres configurations", "Que des personnes écriront des décisions et continueront à en écrire", "Un simple fichier de règles a relevé le conflit dans 5 générations sur 5 et a quand même choisi l’option risquée", "La vérification du brief, l’analyse du parcours terminé, et la lecture d’une justification ou la question au designer en cas de doute", "Des décisions hors périmètre ont été ouvertes et non appliquées, dans 10 générations sur 10", "Si l’IA a besoin de la raison ou seulement du rang", "Des tokens décrits ont suffi pour le cas simple de la couleur", "Un gain de coût ou de temps, ou un gain de cohérence : l’expérience n’en a trouvé aucun", "Qu’enregistrer maintenant et justifier plus tard entretient l’écriture, et qu’une formulation corrigée améliore les résultats", "Que l’amorçage à partir du travail passé produit des décisions que les personnes acceptent de signer", "Un modèle, un parcours bancaire, cinq générations par configuration, contrôles automatisés. Personne n’a noté les résultats. À lire comme un signal fort sur un seul cas. Les décisions de l’expérience employaient les mots working, binding et mandatory ; MUST, SHOULD et MAY sont venus ensuite et n’ont pas encore été testés.", "Crédits et sources", "Le CRD (Component Requirements Document) et « une seule origine par fait » : Cassie Groos, « Probabilistic isn’t a dirty word… », 2026.", "L’exemple de description des tokens : Romina Kavcic, 2026.", "L’étude sur la façon dont les design systems transmettent le contexte à l’IA : Kaelig Deloumeau-Prigent, 2026.", "Pourquoi la capture des décisions échoue : Jonathan Grudin, 1996 ; Buchgeher et collègues, 2023.", "La forme de décision en une phrase : Zdun, Capilla, Tran et Zimmermann, 2013. Mots de rang : RFC 2119.", "Expérience 1, conclue le 5 octobre 2026 : le protocole, le rapport et toutes les générations se trouvent dans le dépôt Sig-Dec sur GitHub (phillipsanders/Sig-Dec), dossier experiment.", "Signed Decisions est un concept de Phillip Sanders. Harbor, ses décisions et ses signataires sont fictifs. Les simulations de cette page sont simplifiées à des fins pédagogiques."];
+function applyStatic(){if(FRS.length!==picked.length)return;picked.forEach(function(e,i){e.innerHTML=lang==="fr"?nb(FRS[i]):EN[i];});}
+
+/* ---------- shared data ---------- */
+var DECS=[
+ {id:"DEC-0004",rank:"MUST",say:["Confirm before any action that removes data or moves money.","Confirmer avant toute action qui supprime des données ou déplace de l’argent."],why:["In shared accounts the harm falls on the person who didn’t act.","Sur un compte joint, le préjudice retombe sur la personne qui n’a pas agi."],sig:["Product and Legal","Produit et Juridique"],scope:["remove","delete","close","transfer","payment","payee","supprim","retir","clôtur","virement","paiement","bénéficiaire"]},
+ {id:"DEC-0007",rank:"MUST",say:["Show the account-closure notice word for word.","Afficher l’avis de clôture du compte mot pour mot."],why:["The wording is a legal commitment.","Sa formulation est un engagement juridique."],sig:["Legal","Juridique"],scope:["close","closure","closing","clôtur"]},
+ {id:"DEC-0031",rank:"MUST",say:["Danger red is for destructive actions and errors only.","Le rouge de danger est réservé aux actions destructrices et aux erreurs."],why:["A warning must never be mistaken for marketing.","Une alerte ne doit jamais être prise pour du marketing."],sig:["Product Design","Product Design"],scope:["delete","remove","error","close","supprim","erreur","clôtur"]},
+ {id:"DEC-0012",rank:"SHOULD",say:["Removing a row in a table uses an undo toast, not a dialog.","Supprimer une ligne dans un tableau passe par un toast d’annulation, pas par une boîte de dialogue."],why:["It keeps bulk editing uninterrupted.","Cela évite d’interrompre l’édition en masse."],sig:["Product Design","Product Design"],scope:["table","row","list","tableau","ligne"]},
+ {id:"DEC-0023",rank:"SHOULD",say:["Every empty state names the next action as a button.","Tout état vide propose l’action suivante sous forme de bouton."],why:["It turns a dead end into a path.","Cela transforme une impasse en chemin."],sig:["Product Design","Product Design"],scope:["empty","no accounts","result","vide","aucun compte","résultat"]},
+ {id:"DEC-0027",rank:"SHOULD",say:["CSV exports use ISO-8601 dates.","Les exports CSV utilisent des dates ISO 8601."],why:["Spreadsheets in different countries read them the same way.","Les tableurs de différents pays les lisent de la même façon."],sig:["Engineering","Engineering"],scope:["export","csv"]},
+ {id:"DEC-0019",rank:"MAY",say:["Back-office tables use dense rows until the accessibility audit.","Les tableaux du back-office utilisent des lignes denses jusqu’à l’audit d’accessibilité."],why:["Operators asked for more rows per screen.","Les opérateurs ont demandé plus de lignes par écran."],sig:["Design Ops","Design Ops"],scope:["back-office","back office","admin"]}
+];
+var RANKN={MUST:3,SHOULD:2,MAY:1};
+function view(d){return {id:d.id,rank:d.rank,say:L(d.say),why:L(d.why),sig:L(d.sig)};}
+function slipHTML(d,extra){
+  var why=lang==="fr"?nb("Raison : ")+esc(d.why):"Because "+esc(d.why.charAt(0).toLowerCase()+d.why.slice(1));
+  return '<div class="slip r-'+d.rank+'"><div class="row" style="justify-content:space-between"><span class="id">'+esc(d.id)+'</span><span class="stamp r-'+d.rank+'">'+d.rank+'</span></div><div class="say">'+esc(d.say)+'</div><div class="why">'+why+'</div><div class="sig"><span>'+esc(d.sig)+'</span><span>'+esc(extra||"")+'</span></div></div>';
+}
+
+/* ---------- rail ---------- */
+var TITLES=[["Why AI guesses","Pourquoi l’IA devine"],["Where things live","Où ranger quoi"],["Anatomy","Anatomie"],["Record now, justify later","Enregistrer, puis justifier"],["Check a brief","Vérifier un brief"],["When rules collide","Quand les règles se heurtent"],["Scan the result","Analyser le résultat"],["The folder empties","Le dossier se vide"],["Seed the folder","Amorcer le dossier"],["The full concept","Le concept complet"]];
+var steps=[].slice.call(document.querySelectorAll("section.step")),rail=$("rail"),links=[],curStep=-1;
+function renderRail(){rail.innerHTML="";links=[];
+  steps.forEach(function(s,i){var li=el("li");var a=el("a",i===curStep?"on":null,(i<9?(i+1)+". ":"")+esc(L(TITLES[i])));a.href="#"+s.id;li.appendChild(a);rail.appendChild(li);links.push(a);});}
+if("IntersectionObserver" in window){
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){curStep=steps.indexOf(e.target);links.forEach(function(l,j){l.classList.toggle("on",curStep===j);});}});},{rootMargin:"-45% 0px -50% 0px"});
+  steps.forEach(function(s){io.observe(s);});
+}
+
+/* ---------- step 1: tokens ---------- */
+var tokState=false;
+function tok(){var on=tokState,none=T("no description","aucune description");
+  $("tokOn").classList.toggle("on",on);$("tokOff").classList.toggle("on",!on);
+  $("tokD1").textContent=on?T("Brand moments: logo, campaigns. Not for destructive actions.","Moments de marque : logo, campagnes. Pas pour les actions destructrices."):none;
+  $("tokD2").textContent=on?T("Destructive actions, errors, alarms.","Actions destructrices, erreurs, alertes."):none;
+  $("tokD3").textContent=on?T("150 ms. Small state changes such as hover.","150 ms. Petits changements d’état, comme le survol."):"150 ms";
+  $("tokBtn").style.background=on?"var(--danger)":"var(--brand)";
+  $("tokMsg").textContent=on?T("It picked the danger red. One sentence per token was enough.","Elle a choisi le rouge de danger. Une phrase par token a suffi."):T("It picked the brand red. Nothing told it otherwise.","Elle a choisi le rouge de la marque. Rien ne lui disait le contraire.");
+}
+$("tokOn").onclick=function(){tokState=true;tok();};$("tokOff").onclick=function(){tokState=false;tok();};
+
+/* ---------- step 2: sorter ---------- */
+var HOMES=[["Token","Token"],["CRD","CRD"],["Signed decision","Décision signée"]];
+var SORT=[
+ {t:["Panels slide in over 200 milliseconds.","Les panneaux s’ouvrent en 200 millisecondes."],a:0,w:["It is a value. Give the motion token a description.","C’est une valeur. Donnez une description au token de mouvement."]},
+ {t:["A button shows a leading or a trailing icon, never both.","Un bouton affiche une icône avant ou après le texte, jamais les deux."],a:1,w:["It concerns one component only.","Cela ne concerne qu’un seul composant."]},
+ {t:["Anything that moves money asks for confirmation first.","Tout ce qui déplace de l’argent demande d’abord une confirmation."],a:2,w:["It crosses many components and money is at stake.","Cela traverse de nombreux composants et de l’argent est en jeu."]},
+ {t:["The legal closure notice is shown word for word.","L’avis légal de clôture est affiché mot pour mot."],a:2,w:["It belongs to a flow, not a component, and Legal owns it.","Cela relève d’un parcours, pas d’un composant, et le Juridique en est responsable."]},
+ {t:["The danger colour is #C62828.","La couleur de danger est #C62828."],a:0,w:["A value with a purpose. Describe the token.","Une valeur avec un usage. Décrivez le token."]},
+ {t:["A toast disappears after ten seconds.","Un toast disparaît au bout de dix secondes."],a:1,w:["Behaviour of one component.","Comportement d’un seul composant."]}
+];
+var chosen={};
+function renderSorter(){var host=$("sorter");host.innerHTML="";
+  SORT.forEach(function(it,i){
+    var box=el("div","sort-item","<div>"+esc(L(it.t))+"</div>"),row=el("div","row"),fb=el("div","fb");
+    HOMES.forEach(function(h,hi){var b=el("button","btn"+(chosen[i]===hi?" on":""),esc(L(h)));b.onclick=function(){chosen[i]=hi;renderSorter();};row.appendChild(b);});
+    if(chosen[i]!==undefined){var ok=chosen[i]===it.a;fb.className="fb "+(ok?"good":"bad");
+      fb.textContent=(ok?T("Yes. ","Oui. "):T("Not quite: ","Pas tout à fait : ")+L(HOMES[it.a]).toLowerCase()+". ")+L(it.w);}
+    box.appendChild(row);box.appendChild(fb);host.appendChild(box);});
+  var keys=Object.keys(chosen),r=keys.filter(function(k){return chosen[k]===SORT[k].a;}).length;
+  $("sortScore").textContent=keys.length?r+T(" of "," sur ")+keys.length+T(" answered correctly."," bonnes réponses."):"";
+}
+
+/* ---------- step 3: anatomy ---------- */
+var ANAT={
+ id:["A stable number. The AI cites it in its notes, so anyone can trace a screen back to this decision.","Un numéro stable. L’IA le cite dans ses notes, ce qui permet de remonter d’un écran à cette décision."],
+ rank:["MUST, SHOULD or MAY. Set by what breaks if it ships wrong: law, money or safety is MUST; consistency is SHOULD; nothing yet is MAY.","MUST, SHOULD ou MAY. Fixé par ce qui casse en cas d’erreur : la loi, l’argent ou la sécurité donnent MUST ; la cohérence donne SHOULD ; rien pour l’instant donne MAY."],
+ say:["The decision in one plain sentence. This is the line the AI acts on.","La décision en une phrase simple. C’est la ligne sur laquelle l’IA agit."],
+ why:["A one-line reason, required at the moment of deciding. It lets a person judge cases nobody wrote down.","Une raison d’une ligne, exigée au moment de décider. Elle permet à une personne de juger les cas que personne n’a écrits."],
+ not:["A concrete wrong answer and a right one. Examples are harder to misread than principles.","Une mauvaise réponse concrète et une bonne. Les exemples se lisent moins de travers que les principes."],
+ scope:["Tags that say where the decision applies. The AI only receives decisions whose tags match what it is building.","Des étiquettes qui disent où la décision s’applique. L’IA ne reçoit que les décisions dont les étiquettes correspondent à ce qu’elle construit."],
+ sig:["The person who decided. A signature means “ask me why”, never “blame me when”.","La personne qui a décidé. Une signature veut dire « demandez-moi pourquoi », jamais « reprochez-le-moi »."],
+ exp:["A MUST is reviewed, not expired. A SHOULD lasts about a year and a MAY about ninety days unless renewed.","Un MUST est révisé, il n’expire pas. Un SHOULD dure environ un an et un MAY environ quatre-vingt-dix jours, sauf reconduction."],
+ ev:["The justification: tickets, measurements, options considered. It can be written later. The AI does not receive it by default, but can request it when it is unsure whether the decision applies.","La justification : tickets, mesures, options envisagées. Elle peut être écrite plus tard. L’IA ne la reçoit pas par défaut, mais peut la demander quand elle doute que la décision s’applique."]
+};
+var selKey=null,parts=[].slice.call(document.querySelectorAll("#s3 .part"));
+function renderAnat(){parts.forEach(function(q){q.classList.toggle("sel",q.dataset.k===selKey);});if(selKey)$("anatExplain").textContent=L(ANAT[selKey]);}
+parts.forEach(function(p){p.tabIndex=0;p.setAttribute("role","button");
+  var go=function(){selKey=p.dataset.k;renderAnat();};
+  p.onclick=go;p.onkeydown=function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}};});
+var VIEWS={
+ full:[["id: DEC-0004\nrank: MUST\nscope: destructive actions, payments\nsigned by: Product and Legal\nreview: Oct 2027\n\nConfirm before any action that removes data or moves money,\nbecause in shared accounts the harm falls on the person who didn’t act.\nNot: an undo toast. Do: a dialog that names what will be lost.\n\nEvidence\nThree support cases where a joint holder lost a scheduled transfer.\nOptions considered: undo toast, 30-day trash, confirmation.",
+        "id: DEC-0004\nrank: MUST\nscope: actions destructrices, paiements\nsigné par : Produit et Juridique\nreview: oct. 2027\n\nConfirmer avant toute action qui supprime des données ou déplace de l’argent,\nparce que, sur un compte joint, le préjudice retombe sur la personne qui n’a pas agi.\nÀ éviter : un toast d’annulation. À faire : une boîte de dialogue qui nomme ce qui sera perdu.\n\nJustification\nTrois dossiers d’assistance où un co-titulaire a perdu un virement programmé.\nOptions envisagées : toast d’annulation, corbeille de 30 jours, confirmation."],["",""]],
+ agent:[["DEC-0004 MUST: confirm before any action that removes data or moves money, because in shared accounts the harm falls on the person who didn’t act. Not: an undo toast. Do: a dialog that names what will be lost.",
+         "DEC-0004 MUST : confirmer avant toute action qui supprime des données ou déplace de l’argent, parce que, sur un compte joint, le préjudice retombe sur la personne qui n’a pas agi. À éviter : un toast d’annulation. À faire : une boîte de dialogue qui nomme ce qui sera perdu."],
+        ["One line per decision keeps the AI’s reading load small.","Une ligne par décision limite ce que l’IA doit lire."]],
+ doubt:[["AI      The brief includes a scheduled transfer to the other account holder.\n        Closing the account cancels it. No decision names this case.\n        DEC-0004 may apply. Requesting its justification.\n\nFolder  Evidence for DEC-0004: three support cases where a joint holder\n        lost a scheduled transfer. Options considered: undo toast,\n        30-day trash, confirmation.\n\nAI      Still not sure this counts as removing data. Asking you:\n        should closing confirm the cancelled transfer too? One line on why.\n\nYou     Yes. The other holder relies on it.\n\nAI      Applying DEC-0004: the dialog names the transfer and who relies\n        on it. Logged the call and flagged it to Product and Legal.\n        Note on the screen: “DEC-0004, designer’s call, awaiting review”.",
+         "IA       Le brief contient un virement programmé vers l’autre titulaire.\n         Clôturer le compte l’annule. Aucune décision ne nomme ce cas.\n         DEC-0004 pourrait s’appliquer. Demande de sa justification.\n\nDossier  Justification de DEC-0004 : trois dossiers d’assistance où un\n         co-titulaire a perdu un virement programmé. Options envisagées :\n         toast d’annulation, corbeille de 30 jours, confirmation.\n\nIA       Pas certain que cela compte comme une suppression de données.\n         Question : la clôture doit-elle aussi confirmer l’annulation du\n         virement ? Une ligne d’explication.\n\nVous     Oui. L’autre titulaire en dépend.\n\nIA       Application de DEC-0004 : la boîte de dialogue nomme le virement\n         et la personne qui en dépend. Choix consigné et signalé à Produit\n         et Juridique.\n         Note sur l’écran : « DEC-0004, choix du designer, en attente de revue »."],
+        ["Design intent, not yet tested. The experiment did not give the AI access to justifications.","Intention de conception, pas encore testée. L’expérience ne donnait pas à l’IA l’accès aux justifications."]]
+};
+var curView="full";
+function anatView(){["full","agent","doubt"].forEach(function(k){$({full:"viewFull",agent:"viewAgent",doubt:"viewDoubt"}[k]).classList.toggle("on",k===curView);});
+  $("anatView").textContent=L(VIEWS[curView][0]);$("anatNote").textContent=L(VIEWS[curView][1]);}
+$("viewFull").onclick=function(){curView="full";anatView();};$("viewAgent").onclick=function(){curView="agent";anatView();};$("viewDoubt").onclick=function(){curView="doubt";anatView();};
+
+/* ---------- step 4: record ---------- */
+var DEF={say:["dont show full acct numbers on shared screens pls","faut pas afficher le n° de cpte complet sur un écran partagé svp"],why:["A joint holder may be looking at the same device","Un co-titulaire peut regarder le même appareil"]};
+var dirty={wSay:false,wWhy:false};
+var WORDS={
+ en:[[/\b(pls|please|asap|kinda|basically|just)\b/gi,""],[/\bdont\b|\bdon[’']t\b/gi,"do not"],[/\bcant\b|\bcan[’']t\b/gi,"cannot"],[/\bshouldn[’']?t\b/gi,"must not"],[/\b(needs to|has to|have to|need to)\b/gi,"must"],[/\bacct(s?)\b/gi,"account$1"],[/\bstuff\b/gi,"data"],[/\b(nukes|wipes|kills|bins)\b/gi,"deletes"],[/\b(nuke|wipe|kill|bin)\b/gi,"delete"],[/\bpop-?up\b/gi,"dialog"],[/\b(a confirm|confirm step)\b/gi,"a confirmation"],[/\binfo\b/gi,"information"]],
+ fr:[[/\b(svp|stp|en gros|juste)\b/gi,""],[/\bfaut pas\b/gi,"ne pas"],[/n°/gi,"numéro"],[/\bcpte(s?)\b/gi,"compte$1"],[/\btruc(s?)\b/gi,"donnée$1"],[/\bpop-?up\b/gi,"boîte de dialogue"],[/\binfos?\b/gi,"informations"],[/\bvirer\b/gi,"supprimer"]]
+};
+function plain(s){WORDS[lang].forEach(function(w){s=s.replace(w[0],w[1]);});s=s.replace(/\s+/g," ").replace(/\s+([,.])/g,"$1").trim();if(s)s=s.charAt(0).toUpperCase()+s.slice(1);return s;}
+function writeRender(){
+  var rank=document.querySelector('input[name=wRank]:checked').value;
+  var raw=$("wSay").value.trim(),ev=$("wEv").value.trim();
+  var say=plain(raw)||T("(your decision)","(votre décision)"),why=plain($("wWhy").value.trim()),sig=$("wSig").value.trim()||T("(unsigned)","(non signé)");
+  if(!/[.!?]$/.test(say)&&raw)say+=".";
+  var changed=raw&&say.replace(/\.$/,"")!==raw.replace(/\.$/,"");
+  $("wLang").innerHTML="<strong>"+(changed?T("Wording corrected","Formulation corrigée"):T("Wording kept","Formulation conservée"))+"</strong><div>"+T("You typed: ","Vous avez saisi : ")+esc(raw||T("(nothing yet)","(rien pour l’instant)"))+"</div><div>"+T("Recorded as: ","Enregistré : ")+esc(say)+"</div>";
+  var life={MUST:T("review in 12 months","révision dans 12 mois"),SHOULD:T("expires in 12 months","expire dans 12 mois"),MAY:T("expires in 90 days","expire dans 90 jours")}[rank];
+  $("wSlip").innerHTML=slipHTML({id:"DEC-0041",rank:rank,say:say,why:why||T("(a reason is required)","(une raison est requise)"),sig:sig},life);
+  var n=[];
+  if(!why)n.push(T("Add a one-line reason. A decision without one is not accepted.","Ajoutez une raison d’une ligne. Une décision sans raison n’est pas acceptée."));
+  n.push(ev?T("Justification stored in the same record. The AI does not receive it unless it asks.","Justification conservée dans la même fiche. L’IA ne la reçoit que si elle la demande."):T("Recorded now. The justification can be added later, if it is needed.","Enregistrée maintenant. La justification pourra être ajoutée plus tard, si nécessaire."));
+  if(rank==="MUST")n.push(T("A MUST needs a signer from the function that owns the risk, such as Legal for a legal rule.","Un MUST exige un signataire de la fonction qui porte le risque, par exemple le Juridique pour une règle légale."));
+  if(rank==="MAY")n.push(T("A MAY lapses on its own unless someone renews it.","Un MAY expire de lui-même si personne ne le reconduit."));
+  $("wNote").textContent=n.join(" ");
+}
+function writeLang(){
+  if(!dirty.wSay)$("wSay").value=lang==="fr"?DEF.say[1]:DEF.say[0];
+  if(!dirty.wWhy)$("wWhy").value=lang==="fr"?DEF.why[1]:DEF.why[0];
+  $("wEv").placeholder=T("For example: 4 complaints in September about shared tablets","Par exemple : 4 réclamations en septembre à propos de tablettes partagées");
+  writeRender();
+}
+["wSay","wWhy","wSig","wEv"].forEach(function(i){$(i).oninput=function(){if(dirty[i]!==undefined)dirty[i]=true;writeRender();};});
+[].forEach.call(document.querySelectorAll("input[name=wRank]"),function(r){r.onchange=writeRender;});
+
+/* ---------- step 5: brief ---------- */
+var PRESETS=[
+ {n:["Close a savings account","Clôturer un compte d’épargne"],t:["Let a customer close their Everyday Saver account. Show the remaining balance and where it goes. Let them remove saved payees from a table. End on a result screen when they have no accounts left.","Permettre à un client de clôturer son compte Everyday Saver. Afficher le solde restant et sa destination. Lui permettre de supprimer des bénéficiaires enregistrés depuis un tableau. Terminer sur un écran de résultat quand il n’a plus aucun compte."]},
+ {n:["Quick payee cleanup","Nettoyage rapide des bénéficiaires"],t:["Add a table of saved payees. Removing a payee should be instant, with an undo toast and no confirmation, so cleanup feels fast.","Ajouter un tableau des bénéficiaires enregistrés. La suppression d’un bénéficiaire doit être instantanée, avec un toast d’annulation et sans confirmation, pour que le nettoyage soit rapide."]},
+ {n:["Back-office export","Export back-office"],t:["Operators in the back-office need to export the transactions table as CSV.","Les opérateurs du back-office doivent exporter le tableau des transactions au format CSV."]},
+ {n:["Profile photo","Photo de profil"],t:["Let a customer upload a profile photo and crop it to a circle.","Permettre à un client de téléverser une photo de profil et de la recadrer en cercle."]}
+];
+var briefPreset=0;
+function has(t,words){return words.some(function(w){return t.indexOf(w)>-1;});}
+function renderPresets(){var host=$("briefPresets");host.innerHTML="";
+  PRESETS.forEach(function(p,i){var b=el("button","btn",esc(L(p.n)));b.onclick=function(){briefPreset=i;$("brief").value=L(p.t);briefRun();};host.appendChild(b);});
+  if(briefPreset>=0)$("brief").value=L(PRESETS[briefPreset].t);}
+function briefRun(){
+  var t=$("brief").value.toLowerCase().replace(/\u00a0/g," "),out=$("briefOut");out.innerHTML="";
+  var hits=DECS.filter(function(d){return has(t,d.scope);}),collisions=[];
+  var destructive=has(t,["remove","delete","removing","close","transfer","payment","supprim","suppression","clôtur","virement","paiement"]);
+  if(destructive&&has(t,["no confirmation","without confirm","instant","one tap","sans confirmation"])){collisions.push(T("This brief asks for removal without a confirmation. DEC-0004 requires one for anything that removes data or moves money. Keep the confirmation, or ask Product and Legal to revisit the decision?","Ce brief demande une suppression sans confirmation. DEC-0004 en exige une pour tout ce qui supprime des données ou déplace de l’argent. Garder la confirmation, ou demander à Produit et Juridique de revoir la décision ?"));}
+  if(has(t,["paraphrase","shorter notice","simplify the notice","paraphras","avis plus court","simplifier l’avis"])){collisions.push(T("DEC-0007 requires the closure notice word for word. Keep the exact text, or ask Legal?","DEC-0007 exige l’avis de clôture mot pour mot. Garder le texte exact, ou consulter le Juridique ?"));}
+  if(!hits.length&&!collisions.length){out.appendChild(el("div","result","<strong>"+T("Nothing to pin.","Rien à épingler.")+"</strong> "+T("This brief touches no standing decision. Build as usual.","Ce brief ne touche aucune décision en vigueur. Construisez comme d’habitude.")));return;}
+  collisions.forEach(function(q){out.appendChild(el("div","result bg-MUST","<strong>"+T("Question before you continue","Question avant de continuer")+"</strong><div>"+esc(q)+"</div>"));});
+  hits.sort(function(a,b){return RANKN[b.rank]-RANKN[a.rank];});
+  var pinned=hits.slice(0,5);
+  var both=pinned.some(function(d){return d.id==="DEC-0004";})&&pinned.some(function(d){return d.id==="DEC-0012";});
+  if(pinned.length){var box=el("div","result","<strong>"+T("Pinned to this brief","Épinglées à ce brief")+"</strong>");
+    pinned.forEach(function(d){box.appendChild(el("div",null,'<span class="stamp r-'+d.rank+'" style="transform:none;font-size:.75rem;margin-right:8px">'+d.rank+'</span><span class="id" style="font-family:var(--mono);font-size:.85rem">'+d.id+'</span> '+esc(L(d.say))));});
+    out.appendChild(box);}
+  if(both)out.appendChild(el("div","result bg-SHOULD","<strong>"+T("Two pinned decisions overlap","Deux décisions épinglées se recoupent")+"</strong><div>"+T("DEC-0012 prefers an undo toast for table rows. DEC-0004 requires confirmation for removing data. DEC-0004 is a MUST and takes precedence here.","DEC-0012 préfère un toast d’annulation pour les lignes de tableau. DEC-0004 exige une confirmation pour toute suppression de données. DEC-0004 est un MUST et l’emporte ici.")+"</div>"));
+}
+$("brief").oninput=function(){briefPreset=-1;};
+$("briefRun").onclick=briefRun;
+
+/* ---------- step 6: collide and chart ---------- */
+var cSel=[0,3];
+function renderSelects(){["cA","cB"].forEach(function(s,k){var sel=$(s);sel.innerHTML="";
+  DECS.forEach(function(d,i){var o=el("option",null,esc(d.id+" "+d.rank+(lang==="fr"?"\u00a0: ":": ")+L(d.say)));o.value=i;sel.appendChild(o);});sel.value=cSel[k];});}
+function collide(){
+  var a=DECS[cSel[0]],b=DECS[cSel[1]],o=$("cOut");
+  if(a===b){o.innerHTML='<div class="result">'+T("Pick two different decisions.","Choisissez deux décisions différentes.")+'</div>';return;}
+  var html=slipHTML(view(a))+slipHTML(view(b));
+  if(RANKN[a.rank]!==RANKN[b.rank]){var w=RANKN[a.rank]>RANKN[b.rank]?a:b,l=w===a?b:a;
+    html+='<div class="result bg-'+w.rank+'"><strong>'+w.id+T(" takes precedence."," l’emporte.")+'</strong><div>'+T(w.rank+" outranks "+l.rank+". Where both apply to the same element, the AI follows "+w.id+" and notes that "+l.id+" was set aside.",w.rank+" l’emporte sur "+l.rank+". Quand les deux s’appliquent au même élément, l’IA suit "+w.id+" et note que "+l.id+" a été écartée.")+'</div></div>';
+  }else{html+='<div class="result"><strong>'+T(a.rank==="MUST"?"Two MUSTs: stop and ask.":"Same rank: three more steps.",a.rank==="MUST"?"Deux MUST : s’arrêter et demander.":"Même rang : trois étapes de plus.")+'</strong><div>'+T(a.rank==="MUST"?"Both are MUST. If they truly contradict each other on the same element, the AI does not choose. It stops and names the two signers.":"Both are "+a.rank+". If they truly contradict each other, the one that names the other as overridden wins. If neither does, the narrower scope wins. If that does not settle it, the AI asks the author of the brief.",a.rank==="MUST"?"Les deux sont des MUST. Si elles se contredisent réellement sur le même élément, l’IA ne choisit pas. Elle s’arrête et nomme les deux signataires.":"Les deux sont des "+a.rank+". Si elles se contredisent réellement, celle qui nomme l’autre comme remplacée l’emporte. Sinon, le périmètre le plus étroit l’emporte. Si cela ne suffit pas, l’IA interroge l’auteur du brief.")+'</div></div>';}
+  o.innerHTML=html;
+}
+$("cA").onchange=function(){cSel[0]=+this.value;collide();};$("cB").onchange=function(){cSel[1]=+this.value;collide();};
+
+var COND=[["Raw tokens","Tokens bruts"],["Described tokens","Tokens décrits"],["Rules file","Fichier de règles"],["Rich metadata","Métadonnées riches"],["Rich metadata + signed decisions","Métadonnées riches + décisions signées"],["Described tokens + signed decisions","Tokens décrits + décisions signées"]];
+var CHECKS=[
+ {n:["Confirmation on bulk removal","Confirmation sur la suppression en masse"],v:[0,0,0,0,4,5],note:["The collision. Only the signed-decision setups built the confirmation. One further run in the fifth setup had the dialog present but hidden, which is why the headline is quoted as 9 of 10 visible, 10 of 10 with it.","Le conflit. Seules les configurations avec décisions signées ont construit la confirmation. Une génération supplémentaire de la cinquième configuration contenait la boîte de dialogue, mais masquée : d’où le résultat cité, 9 sur 10 visibles, 10 sur 10 en la comptant."]},
+ {n:["Collision named in the AI’s notes","Conflit signalé dans les notes de l’IA"],v:[0,0,5,0,5,5],note:["The rules file noticed the collision every time. Compare with the previous check: it noticed and still chose the undo toast.","Le fichier de règles a relevé le conflit à chaque fois. Comparez avec le contrôle précédent : il l’a vu et a quand même choisi le toast d’annulation."]},
+ {n:["Dialog before closing the account","Boîte de dialogue avant la clôture du compte"],v:[1,0,0,2,4,5],note:["Counting visible dialogs only. Several setups described a confirmation in their notes and never placed one.","Boîtes de dialogue visibles uniquement. Plusieurs configurations ont décrit une confirmation dans leurs notes sans jamais la placer."]},
+ {n:["Correct danger colour","Couleur de danger correcte"],v:[4,5,5,4,5,5],note:["The simple case. Every setup did well, so signed decisions add nothing here.","Le cas simple. Toutes les configurations s’en sortent bien : les décisions signées n’apportent rien ici."]}
+];
+var curChart=0;
+function chart(){var pick=$("chartPick");pick.innerHTML="";
+  CHECKS.forEach(function(k,i){var b=el("button","btn"+(i===curChart?" on":""),esc(L(k.n)));b.onclick=function(){curChart=i;chart();};pick.appendChild(b);});
+  var c=$("chart");c.innerHTML="";
+  CHECKS[curChart].v.forEach(function(v,j){var r=el("div","bar-row");r.appendChild(el("div",null,esc(L(COND[j]))));
+    var t=el("div","track"),f=el("div","fill"+(j>3?" sd":""));f.style.width=(v/5*100)+"%";t.appendChild(f);r.appendChild(t);r.appendChild(el("div",null,v+" / 5"));c.appendChild(r);});
+  $("chartNote").textContent=L(CHECKS[curChart].note);
+}
+
+/* ---------- step 7: scan ---------- */
+var FLOW=[
+ {h:["1. Overview","1. Vue d’ensemble"],els:[{t:["Everyday Saver, balance €2,310.00","Everyday Saver, solde 2 310,00 €"]},{t:["Button: Close account","Bouton : Clôturer le compte"]}]},
+ {h:["2. Review","2. Vérification"],els:[
+   {t:["Notice: “Closing ends your agreement. Money moves in a few days.”","Avis : « La clôture met fin à votre contrat. Les fonds sont transférés sous quelques jours. »"],flag:["DEC-0007 MUST: the notice must be word for word.","DEC-0007 MUST : l’avis doit être reproduit mot pour mot."],fix:["Notice: exact legal text","Avis : texte juridique exact"]},
+   {t:["Payees table, button: Remove (2), undo toast","Tableau des bénéficiaires, bouton : Supprimer (2), toast d’annulation"],flag:["DEC-0004 MUST: removing data needs a confirmation.","DEC-0004 MUST : supprimer des données exige une confirmation."],fix:["Payees table, Remove (2) opens a confirmation","Tableau des bénéficiaires, Supprimer (2) ouvre une confirmation"]},
+   {t:["Button: Close account, danger red","Bouton : Clôturer le compte, rouge de danger"]}]},
+ {h:["3. Result","3. Résultat"],els:[{t:["“You have no savings accounts.”","« Vous n’avez aucun compte d’épargne. »"],flag:["DEC-0023 SHOULD: an empty state names the next action.","DEC-0023 SHOULD : un état vide propose l’action suivante."],soft:true,fix:["“You have no savings accounts.” Button: Open a savings account","« Vous n’avez aucun compte d’épargne. » Bouton : Ouvrir un compte d’épargne"]}]}
+];
+var SCANMSG=[["Three screens for closing a savings account. Something slipped during iteration.","Trois écrans pour clôturer un compte d’épargne. Quelque chose a glissé au fil des itérations."],["Three notes: two MUST, one SHOULD. The designer decides what to do with each.","Trois notes : deux MUST, une SHOULD. Le designer décide quoi faire de chacune."],["All three resolved. The flow can go to developers.","Les trois sont résolues. Le parcours peut partir chez les développeurs."]];
+var scanState=0;
+function flow(){var f=$("flow");f.innerHTML="";
+  FLOW.forEach(function(s){var sc=el("div","screen","<h4>"+esc(L(s.h))+"</h4>");
+    s.els.forEach(function(e){var d=el("div","el");
+      if(e.flag&&scanState===1){d.className="el flag"+(e.soft?" soft":"");d.innerHTML=esc(L(e.t))+'<div class="ann r-'+(e.soft?"SHOULD":"MUST")+'">'+esc(L(e.flag))+'</div>';}
+      else if(e.flag&&scanState===2){d.className="el fixed";d.innerHTML=esc(L(e.fix))+'<div class="ann good">'+T("Resolved","Résolu")+'</div>';}
+      else d.textContent=L(e.t);
+      sc.appendChild(d);});
+    f.appendChild(sc);});
+  $("scanFix").disabled=scanState!==1;$("scanMsg").textContent=L(SCANMSG[scanState]);
+}
+$("scanRun").onclick=function(){scanState=1;flow();};$("scanFix").onclick=function(){scanState=2;flow();};$("scanReset").onclick=function(){scanState=0;flow();};
+
+/* ---------- step 8: lifecycle (illustrative) ---------- */
+var curWeek=0;
+function life(){var w=curWeek,slips=[];
+  for(var i=0;i<20;i++){
+    var born=i<12?i:12+(i-12)*2;              /* busy first quarter, then slower */
+    if(born>w)continue;
+    var age=w-born,state="noreason";
+    if(i%5===4){state=age>=10?"expired":"noreason";}   /* never got a reason, lapses */
+    else if(age>=2){state="live";if(i%2===0&&age>=9)state="promoted";if(i%7===3&&age>=12)state="expired";}
+    slips.push(state);
+  }
+  var c={live:0,noreason:0,promoted:0,expired:0};slips.forEach(function(s){c[s]++;});
+  var d=$("dots");d.innerHTML="";
+  ["live","noreason","promoted","expired"].forEach(function(k){for(var j=0;j<c[k];j++)d.appendChild(el("span","dot "+k));});
+  $("wkN").textContent=w;$("stLive").textContent=c.live+c.noreason;$("stDebt").textContent=c.noreason;$("stProm").textContent=c.promoted;$("stExp").textContent=c.expired;
+}
+$("wk").oninput=function(){curWeek=+this.value;life();};
+
+
+/* ---------- step 9: seeding (illustrative) ---------- */
+var SRC=[["Last 20 briefs","20 derniers briefs"],["Design flows","Parcours conçus"],["Shipped code","Code livré"],["Meeting notes","Comptes rendus de réunion"]];
+var DRAFTS=[
+ {rank:"MUST",say:DECS[0].say,src:[0,1],own:["Product Design","Product Design"]},
+ {rank:"MUST",say:["Show legal notices word for word.","Afficher les mentions légales mot pour mot."],src:[2,3],own:["Legal","Juridique"]},
+ {rank:"SHOULD",say:DECS[3].say,src:[1,2],own:["Product Design","Product Design"]},
+ {rank:"SHOULD",say:DECS[4].say,src:[1],own:["Product Design","Product Design"]},
+ {rank:"SHOULD",say:DECS[5].say,src:[2],own:["Engineering","Engineering"]},
+ {rank:"MAY",say:DECS[6].say,src:[3],own:["Design Ops","Design Ops"]}
+];
+var GAPS=[
+ {need:[0,3],t:["No record of Legal being consulted on 6 of the 20 briefs that involve legal wording.","Aucune trace d’une consultation du Juridique pour 6 des 20 briefs qui comportent des mentions légales."]},
+ {need:[1,2],t:["Two teams handle deletion differently: one confirms, the other uses an undo toast. The rule has forked without anyone choosing.","Deux équipes traitent la suppression différemment : l’une confirme, l’autre utilise un toast d’annulation. La règle a divergé sans que personne ne tranche."]},
+ {need:[3],t:["9 of the drafts have no identifiable owner in the notes.","9 des brouillons n’ont aucun responsable identifiable dans les comptes rendus."]},
+ {need:[2],t:["3 rules exist only in code, with no brief or note behind them.","3 règles n’existent que dans le code, sans brief ni compte rendu à l’appui."]}
+];
+var srcOn=[true,true,true,true],seedRan=false,seedState={};
+function renderSeed(){
+  var host=$("seedSrc");host.innerHTML="";
+  SRC.forEach(function(s,i){var b=el("button","btn"+(srcOn[i]?" on":""),esc(L(s)));b.type="button";b.setAttribute("aria-pressed",String(srcOn[i]));b.onclick=function(){srcOn[i]=!srcOn[i];renderSeed();};host.appendChild(b);});
+  var out=$("seedOut");out.innerHTML="";
+  if(!seedRan){$("seedMsg").textContent=T("Choose the sources, then draft.","Choisissez les sources, puis lancez la rédaction.");return;}
+  if(!srcOn.some(function(x){return x;})){$("seedMsg").textContent=T("Select at least one source.","Sélectionnez au moins une source.");return;}
+  var shown=0,signed=0,rejected=0;
+  DRAFTS.forEach(function(d,i){
+    var from=d.src.filter(function(k){return srcOn[k];});if(!from.length)return;shown++;
+    var st=seedState[i],box=el("div","result"+(st==="signed"?" bg-"+d.rank:""));
+    box.innerHTML='<span class="stamp r-'+d.rank+'" style="transform:none;font-size:.75rem;margin-right:8px">'+d.rank+'</span>'+esc(L(d.say))+'<div class="note">'+T("Found in: ","Trouvé dans : ")+esc(from.map(function(k){return L(SRC[k]).toLowerCase();}).join(", "))+". "+T("Proposed signer: ","Signataire proposé : ")+esc(L(d.own))+'.</div>';
+    var row=el("div","row");row.style.marginTop="8px";
+    if(st==="signed"){signed++;row.appendChild(el("span","note good",T("Signed. Now live.","Signée. En vigueur.")));}
+    else if(st==="rejected"){rejected++;row.appendChild(el("span","note",T("Rejected. Kept on file so it is not proposed again.","Rejetée. Conservée pour ne pas être proposée à nouveau.")));}
+    else{var a=el("button","btn",T("Sign","Signer")),r=el("button","btn",T("Reject","Rejeter"));a.type=r.type="button";
+      a.onclick=function(){seedState[i]="signed";renderSeed();};r.onclick=function(){seedState[i]="rejected";renderSeed();};row.appendChild(a);row.appendChild(r);}
+    box.appendChild(row);out.appendChild(box);});
+  var gaps=GAPS.filter(function(g){return g.need.every(function(k){return srcOn[k];});});
+  if(gaps.length){var gb=el("div","result bg-SHOULD","<strong>"+T("Gaps found","Manques relevés")+"</strong>");
+    gaps.forEach(function(g){gb.appendChild(el("div",null,esc(L(g.t))));});out.appendChild(gb);}
+  $("seedMsg").textContent=T(shown+" drafts shown, "+signed+" signed and live, "+rejected+" rejected. A real run would propose about twenty.","Brouillons affichés : "+shown+". Signés et en vigueur : "+signed+". Rejetés : "+rejected+". Une exécution réelle en proposerait une vingtaine.");
+}
+$("seedRun").onclick=function(){seedRan=true;renderSeed();};$("seedReset").onclick=function(){seedRan=false;seedState={};srcOn=[true,true,true,true];renderSeed();};
+
+/* ---------- reference: layers ---------- */
+var LAYERS=[
+ {n:["Tokens","Tokens"],w:["Design system team","Équipe design system"],d:["Values and one sentence on what each is for. Handles every case a value can express.","Des valeurs et une phrase sur l’usage de chacune. Couvre tous les cas qu’une valeur peut exprimer."]},
+ {n:["CRDs","CRD"],w:["Designers and developers","Designers et développeurs"],d:["Cassie Groos’s CRD: what each component must do, what was ruled out and why. One file per component, kept current by AI agents.","Le CRD de Cassie Groos : ce que chaque composant doit faire, ce qui a été écarté et pourquoi. Un fichier par composant, tenu à jour par des agents IA."]},
+ {n:["Signed decisions","Décisions signées"],w:["Product managers, designers, Legal","Product managers, designers, Juridique"],d:["Ranked, signed, dated rules that cross components: money, deletion, legal wording. Checked against every brief.","Des règles classées, signées et datées qui traversent les composants : argent, suppression, mentions légales. Vérifiées à chaque brief."]},
+ {n:["The brief","Le brief"],w:["Whoever requests the work","La personne qui demande le travail"],d:["The goal, data and scope for one flow. It points to decisions by ID and never restates them.","L’objectif, les données et le périmètre d’un parcours. Il renvoie aux décisions par leur identifiant et ne les recopie jamais."]}
+];
+var curLayer=2;
+function renderLayers(){var host=$("layers");host.innerHTML="";
+  LAYERS.forEach(function(Ly,i){var b=el("button","layer"+(i===curLayer?" on":""),"<b>"+esc(L(Ly.n))+"</b><span>"+T("Written by: ","Écrit par : ")+esc(L(Ly.w))+"</span>");
+    b.onclick=function(){curLayer=i;renderLayers();};host.appendChild(b);});
+  $("layerExplain").textContent=L(LAYERS[curLayer].d);}
+
+/* ---------- developer view (implementation sketch) ---------- */
+var DEV={
+ s1:{t:["Level 0: describe the token","Niveau 0 : décrire le token"],b:[
+  {p:["Nothing to build. Add a description to the tokens the AI misreads, in the token file and on the matching design variable. This uses the description field of the Design Tokens format.","Rien à construire. Ajoutez une description aux tokens que l’IA interprète mal, dans le fichier de tokens et sur la variable de design correspondante. On utilise le champ description du format Design Tokens."]},
+  {c:`{
+  "color": { "feedback": { "danger": {
+    "$type": "color",
+    "$value": "{color.red.500}",
+    "$description": "Destructive actions, errors, alarms. Not for brand or marketing surfaces."
+  } } }
+}`}]},
+ s2:{t:["Routing: where a new fact goes","Routage : où va un nouveau fait"],b:[
+  {p:["The capture step routes before it writes. Only the last branch creates a decision file, which keeps one origin per fact.","L’étape de capture oriente avant d’écrire. Seule la dernière branche crée un fichier de décision, ce qui garantit une seule origine par fait."]},
+  {c:`type Home = "token" | "crd" | "decision";
+
+function route(f: Fact): Home {
+  if (f.isValue) return "token";                          // a colour, a size, a duration
+  if (f.components.length === 1 && !f.crossesFlows) return "crd";
+  return "decision";                                      // cross-cutting, has consequences
+}`}]},
+ s3:{t:["The record, the compiler, the justification call","La fiche, le compilateur, l’appel de justification"],b:[
+  {p:["One Markdown file per decision, in the repository. The front matter is the contract, the body is the sentence, and everything under the Justification heading stays out of the agent’s context.","Un fichier Markdown par décision, dans le dépôt. L’en-tête est le contrat, le corps est la phrase, et tout ce qui se trouve sous le titre Justification reste hors du contexte de l’agent."]},
+  {c:`# decisions/DEC-0004.md
+---
+id: DEC-0004
+rank: MUST                  # MUST | SHOULD | MAY
+scope: [action:delete, action:transfer, state:destructive]
+decision-makers: [product, legal]   # functions; approval enforced by CODEOWNERS
+review: 2027-10
+status: accepted            # proposed | accepted | promoted | retired | rejected
+---
+Confirm before any action that removes data or moves money,
+because in shared accounts the harm falls on the person who didn't act.
+Not: an undo toast. Do: a dialog that names what will be lost.
+
+## Justification
+Three support cases where a joint holder lost a scheduled transfer.`},
+  {p:["A compile step turns every live record into one line and an index entry. The agent reads the compiled output, never the folder.","Une étape de compilation transforme chaque fiche en vigueur en une ligne et une entrée d’index. L’agent lit la sortie compilée, jamais le dossier."]},
+  {c:`function compile(d: Decision): string {
+  // signer, dates and justification are stripped here
+  return d.id + " " + d.rank + ": " + d.statement + " Not: " + d.not + " Do: " + d.do;
+}`},
+  {p:["When the agent cannot tell whether a decision applies, it makes one more tool call. Every such call is logged, which later shows which decisions are unclear.","Quand l’agent ne peut pas déterminer si une décision s’applique, il fait un appel d’outil supplémentaire. Chaque appel est journalisé, ce qui montre ensuite quelles décisions manquent de clarté."]},
+  {c:`tool("sigdec.get_justification", { id: "string" }, async ({ id }) => {
+  log.append({ event: "justification_requested", id, at: now() });
+  return readSection("decisions/" + id + ".md", "Justification");
+});`}]},
+ s4:{t:["Capture: three calls and a commit","Capture : trois appels et un commit"],b:[
+  {p:["The command rewrites the wording, sets rank and expiry from the consequence answer, and writes a file. The signer confirms the rewritten sentence, and that confirmation is the signature.","La commande reformule, fixe le rang et l’expiration à partir de la réponse sur la conséquence, puis écrit un fichier. Le signataire confirme la phrase reformulée, et cette confirmation vaut signature."]},
+  {c:`const EXPIRY = { MUST: null, SHOULD: "P12M", MAY: "P90D" };     // MUST is review-only
+
+async function capture(raw: string, why: string, breaks: Consequence, user: User) {
+  const statement = await llm.rewrite(raw, { style: "plain-english", glossary });
+  const rank = breaks === "law-money-safety" ? "MUST"
+             : breaks === "coherence"        ? "SHOULD" : "MAY";
+  const d = draft({ statement, why, rank, proposedBy: user.id, status: "proposed", review: REVIEW[rank] });
+
+  await user.confirm(d);                   // the signer sees the rewritten text first
+  if (rank === "MUST") requireOwner(d);    // owning function must approve, e.g. Legal
+  return repo.commit("decisions/" + d.id + ".md", render(d), { author: user });
+}`},
+  {p:["The justification is a later edit to the same file. A scheduled job lists decisions whose Justification section is still empty at review.","La justification est une modification ultérieure du même fichier. Une tâche planifiée liste les décisions dont la section Justification est encore vide à la révision."]}]},
+ s5:{t:["Brief check: match, ask, pin","Vérification du brief : rapprocher, questionner, épingler"],b:[
+  {p:["Two stages. The first is exact: extract typed scope keys from the brief and intersect them with each decision’s scope. The second is a similarity search whose hits are only suggestions for a person to confirm.","Deux étapes. La première est exacte : extraire du brief des clés de périmètre typées et les croiser avec le périmètre de chaque décision. La seconde est une recherche par similarité dont les résultats ne sont que des suggestions à confirmer par une personne."]},
+  {c:`async function checkBrief(brief: string) {
+  const keys  = await llm.extractScope(brief, SCOPE_VOCAB);   // ["action:destructive", "component:DataTable"]
+  const exact = index.filter(d => d.scope.some(k => keys.includes(k)));
+
+  const possible = (await nearest(embed(brief), 8))
+    .filter(h => h.score > THRESHOLD && !exact.includes(h.decision))
+    .map(h => ({ ...h.decision, possible: true }));           // needs a human yes
+
+  const pinned    = byRank(exact).slice(0, 5);                // MUST first, five at most
+  const questions = await llm.contradictions(brief, pinned);  // "the brief says no confirmation"
+  return { pinned, possible, questions };
+}`},
+  {p:["Pinned IDs are written into the brief’s header with a hash of the delivered set, so later steps can prove what the builder received.","Les identifiants épinglés sont écrits dans l’en-tête du brief avec une empreinte de l’ensemble transmis, afin que les étapes suivantes puissent prouver ce que l’agent a reçu."]},
+  {c:`sigdec:
+  pinned: [DEC-0004, DEC-0007, DEC-0031, DEC-0012, DEC-0023]
+  set_hash: 9f2c1e`}]},
+ s6:{t:["Conflict resolution is a pure function","La résolution des conflits est une fonction pure"],b:[
+  {p:["No model decides which rule wins. The order is: the stricter rank, then an explicit override, then how specific the scope is. Equal on all three means ask the author of the brief. Two MUSTs always stop and go to both signers.","Aucun modèle ne décide quelle règle l’emporte. L’ordre est : le rang le plus strict, puis un remplacement explicite, puis la précision du périmètre. En cas d’égalité sur les trois, on interroge l’auteur du brief. Deux MUST s’arrêtent toujours et vont aux deux signataires."]},
+  {c:`const ORDER = { MUST: 3, SHOULD: 2, MAY: 1 };
+
+function resolve(a: Decision, b: Decision): Verdict {
+  if (a.supersedes === b.id) return win(a, b);
+  if (b.supersedes === a.id) return win(b, a);
+  if (ORDER[a.rank] !== ORDER[b.rank])
+    return ORDER[a.rank] > ORDER[b.rank] ? win(a, b) : win(b, a);
+  if (specificity(a) !== specificity(b))
+    return specificity(a) > specificity(b) ? win(a, b) : win(b, a);
+  return { stop: true, ask: [a.signed, b.signed] };          // equal: never guess
+}`},
+  {p:["The verdict reaches the agent as text: follow one, note the other was set aside. Experiment 1 exercised the rank branch only.","Le verdict parvient à l’agent sous forme de texte : suivre l’une, noter que l’autre a été écartée. L’expérience 1 n’a exercé que la branche du rang."]}]},
+ s7:{t:["Scan: checks first, model second","Analyse : les vérifications d’abord, le modèle ensuite"],b:[
+  {p:["A decision may carry a verify rule written against the design file’s node tree. The scan evaluates those rules deterministically and uses a model only to phrase the note.","Une décision peut porter une règle verify écrite sur l’arbre de nœuds du fichier de design. L’analyse évalue ces règles de façon déterministe et n’utilise un modèle que pour rédiger la note."]},
+  {c:`# in DEC-0004.md front matter
+verify:
+  when:   "node.component == 'Button' && node.variant == 'danger'"
+  expect: "flow.precededBy(node, 'Dialog')"`},
+  {c:`for (const d of pinned) {
+  for (const node of select(tree, d.verify.when)) {
+    if (!evaluate(d.verify.expect, node, tree))
+      annotate(node, d.id + " " + d.rank + ": " + d.short);   // a comment on the canvas
+  }
+}
+process.exit(0);                                             // advisory: it never fails a build`},
+  {p:["Blocking belongs to continuous integration, and only for decisions that have been promoted into a check.","Le blocage relève de l’intégration continue, et seulement pour les décisions promues en vérification."]}]},
+ s8:{t:["Lifecycle: a scheduled job and a promotion pull request","Cycle de vie : une tâche planifiée et une pull request de promotion"],b:[
+  {c:`# .github/workflows/sigdec.yml
+on:
+  schedule: [{ cron: "0 5 * * 1-5" }]
+jobs:
+  lifecycle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sigdec expire          # past its date and not MUST -> status: expired
+      - run: sigdec debt --notify   # no justification at review -> message the signer
+      - run: sigdec candidates      # delivered often, check always passing, never disputed`},
+  {p:["A candidate becomes a pull request that adds a lint rule or a component constraint carrying the decision’s ID. When it merges, the status becomes promoted and the decision is no longer delivered.","Un candidat devient une pull request qui ajoute une règle de lint ou une contrainte de composant portant l’identifiant de la décision. À la fusion, le statut passe à promoted et la décision n’est plus transmise."]},
+  {c:`// lint rule generated from DEC-0031
+create(context) {
+  return { JSXOpeningElement(node) {
+    if (isDestructive(node) && usesToken(node, "color.brand.accent"))
+      context.report({ node, message: "Brand colour on a destructive action. See DEC-0031 (MUST)." });
+  } };
+}`}]},
+ s9seed:{t:["Seeding: extract, cluster, propose","Amorçage : extraire, regrouper, proposer"],b:[
+  {c:`async function seed(sources: Source[]) {
+  const claims   = (await Promise.all(sources.map(s =>
+                     llm.extractDecisions(s.text, { cite: true })))).flat();   // each keeps its source link
+  const clusters = cluster(claims, embed);                 // one decision said five ways
+  const drafts   = clusters.map(toDraft);                  // status: proposed, unsigned
+  const forks    = clusters.filter(c => contradicts(c.members));   // same scope, opposite rule
+  const gaps     = coverage(drafts, ROLES);                // e.g. no trace of Legal on legal scope
+  return openPullRequest({ drafts, report: { forks, gaps: byRole(gaps) } });
+}`},
+  {p:["Drafts land with status draft and are invisible to the compiler until someone signs them. Rejected drafts move to a rejected folder so the next run skips them. The report is grouped by role, and only shared sources are read.","Les brouillons arrivent avec le statut draft et restent invisibles pour le compilateur tant que personne ne les signe. Les brouillons rejetés vont dans un dossier rejected pour que l’exécution suivante les ignore. Le rapport est regroupé par rôle, et seules les sources partagées sont lues."]}]},
+ s9:{t:["The whole system on one screen","Tout le système sur un écran"],b:[
+  {c:`repo/
+  decisions/              DEC-*.md, one file per decision (the source of truth)
+  decisions/rejected/     drafts someone declined
+  .sigdec/index.json      generated: id, rank, scope, compiled line, hash
+  .sigdec/log.jsonl       every delivery, justification request and verdict
+  skills/sigdec/          SKILL.md and scripts: capture, check-brief, scan, seed
+  .github/workflows/      the scheduled lifecycle job`},
+  {p:["Four entry points share that folder: the skill in an agent session, a tool server for design and ticket tools, a chat command, and continuous integration.","Quatre points d’entrée partagent ce dossier : le skill dans une session d’agent, un serveur d’outils pour les outils de design et de tickets, une commande de messagerie, et l’intégration continue."]},
+  {c:`sigdec.for_scope(keys[])            -> up to 5 compiled lines, MUST first
+sigdec.check_brief(text)            -> pinned, possible, questions
+sigdec.get_justification(id)        -> the Justification section, logged
+sigdec.capture(raw, why, breaks)    -> a draft for the signer to confirm
+sigdec.scan(fileKey, pinned[])      -> annotations, never a failure`},
+  {p:["Status: a sketch. None of this is built. Experiment 1 used the folder, an index and scoped file reads only.","Statut : une esquisse. Rien de tout cela n’est construit. L’expérience 1 n’a utilisé que le dossier, un index et des lectures de fichiers par périmètre."]}]}
+};
+var devOn=false,devHosts={};
+function renderDev(){
+  Object.keys(DEV).forEach(function(id){
+    var sec=$(id);if(!sec)return;var wrap=sec.querySelector(".wrap"),host=devHosts[id];
+    if(!host){host=el("div","devhost");wrap.appendChild(host);devHosts[id]=host;}
+    host.innerHTML="";
+    var b=el("button","devbtn",esc(devOn?T("Hide the developer view </>","Masquer la vue développeur </>"):T("Show me how it works <>","Montrez-moi comment ça marche <>")));
+    b.type="button";b.setAttribute("aria-expanded",String(devOn));
+    b.onclick=function(){devOn=!devOn;document.documentElement.setAttribute("data-dev",devOn?"on":"off");renderDev();devHosts[id].scrollIntoView({block:"start"});};
+    host.appendChild(b);
+    var panel=el("div","dev"),d=DEV[id];
+    panel.appendChild(el("h3",null,esc(L(d.t))+'<span class="sk">'+T("sketch, not built","esquisse, non construit")+'</span>'));
+    d.b.forEach(function(x){if(x.p)panel.appendChild(el("p",null,esc(L(x.p))));else{var pre=el("pre");pre.textContent=x.c;panel.appendChild(pre);}});
+    host.appendChild(panel);
+  });
+}
+
+/* ---------- language switch ---------- */
+function setLang(l){
+  lang=l;document.documentElement.lang=l;
+  document.title=T("Signed Decisions: a hands-on tutorial","Signed Decisions : un tutoriel pratique");
+  $("lEn").setAttribute("aria-pressed",String(l==="en"));$("lFr").setAttribute("aria-pressed",String(l==="fr"));
+  applyStatic();
+  renderRail();tok();renderSorter();renderAnat();anatView();writeLang();renderPresets();briefRun();renderSelects();collide();chart();flow();life();renderSeed();renderLayers();renderDev();
+}
+$("lEn").onclick=function(){setLang("en");};$("lFr").onclick=function(){setLang("fr");};
+setLang("en");
+})();
+</script>
+</body>
+</html>

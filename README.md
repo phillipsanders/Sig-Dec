@@ -17,8 +17,10 @@ they are given. Those rules usually live in a hand-written agent file
 Signed Decisions keeps the rules that cross components in one folder, and
 generates everything a machine reads from that folder.
 
-**Start here:** open `playground/index.html` in a browser for the whole
-model with interactive diagrams, then look through `examples/harbor/`.
+**Start here:** open `Beginners guide to Sigdec.html` in a browser. It is a
+nine-step interactive introduction, in English and French. Then open
+`playground/index.html` for the whole model in detail, and look through
+`examples/harbor/`.
 
 ## What a signed decision is
 
@@ -141,6 +143,8 @@ fetched by scope.
 ```
 examples/harbor/        a sample project: decisions, history, component
                         records, checks, tokens, a brief and an agent file
+Beginners guide to Sigdec.html
+                        a nine-step interactive introduction (EN and FR)
 playground/index.html   the working model as an interactive page
 experiment/             Experiment 1: the Figma file with the method, the results
                         and every run
