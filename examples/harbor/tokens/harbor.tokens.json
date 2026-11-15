@@ -1,0 +1,19 @@
+{
+  "color": {
+    "brand": {
+      "primary": {
+        "$type": "color",
+        "$value": "#D4262E",
+        "$description": "Brand red. Logo, marketing and emphasis. Never on a destructive action."
+      }
+    },
+    "feedback": {
+      "danger": {
+        "$type": "color",
+        "$value": "#C8102E",
+        "$description": "Danger red. Destructive actions and errors only.",
+        "$extensions": { "org.sigdec.decisions": ["DEC-0043"] }
+      }
+    }
+  }
+}

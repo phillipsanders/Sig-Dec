@@ -1,0 +1,70 @@
+{
+  "decisions": [
+    {
+      "id": "DEC-0004",
+      "rank": "MUST",
+      "scope": [
+        "action:delete",
+        "action:transfer",
+        "state:destructive"
+      ],
+      "say": "Any action that removes data or moves money MUST confirm first.",
+      "because": "in shared accounts the harm falls on the person who did not act.",
+      "not": "immediate action with an undo message.",
+      "do": "a dialog that names the consequence.",
+      "reader": "product",
+      "verify": "confirm-before-destructive"
+    },
+    {
+      "id": "DEC-0041",
+      "rank": "MUST",
+      "scope": [
+        "content:legal-notice",
+        "flow:close-account"
+      ],
+      "say": "A legal notice MUST be shown word for word, as written in `history/legal-notices.md`.",
+      "because": "a shortened notice is not the notice the regulator approved.",
+      "not": "a summary, a tooltip or a link in place of the text.",
+      "do": "the full text, visible without an extra tap, before the action it concerns.",
+      "reader": "product",
+      "verify": "legal-notice-verbatim"
+    },
+    {
+      "id": "DEC-0042",
+      "rank": "MUST",
+      "scope": [
+        "component:icon-button"
+      ],
+      "say": "An icon-only button MUST have an accessible name.",
+      "because": "a screen-reader user cannot use a button that has no name.",
+      "not": "relying on the icon or a tooltip alone.",
+      "do": "set the label in the component API.",
+      "reader": "product",
+      "verify": "axe:button-name"
+    },
+    {
+      "id": "DEC-0012",
+      "rank": "SHOULD",
+      "scope": [
+        "component:data-table",
+        "flow:manage-payees"
+      ],
+      "say": "Row actions in a table SHOULD take effect at once and offer an undo message.",
+      "because": "a dialog on every row action slows down people who manage long lists.",
+      "not": "a confirmation dialog for an action that can be reversed.",
+      "do": "an undo message that stays for ten seconds.",
+      "reader": "product",
+      "verify": "undo-in-tables"
+    },
+    {
+      "id": "DEC-0044",
+      "rank": "MAY",
+      "scope": [
+        "component:data-table"
+      ],
+      "say": "Screens not yet migrated MAY keep the previous table until the migration ends.",
+      "because": "rebuilding every table at once would block two releases.",
+      "reader": "system"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+Documentation, the playground and the experiment report in this repository
+are licensed under the Creative Commons Attribution 4.0 International
+License (CC BY 4.0).
+
+You may share and adapt this material for any purpose, including
+commercially, as long as you give appropriate credit, provide a link to the
+licence, and indicate if changes were made.
+
+Full licence text: https://creativecommons.org/licenses/by/4.0/legalcode
+Summary:           https://creativecommons.org/licenses/by/4.0/
+
+Suggested credit: "Signed Decisions" by Phillip Sanders, CC BY 4.0.
+
+Code in this repository (the scripts under .claude/skills/) is licensed
+under the MIT License. See LICENSE.
+
+The CRD (Component Requirements Document) is the work of Cassie Groos,
+described in her article "Probabilistic isn't a dirty word…" (27 August
+2026). The sample CRDs in examples/harbor/crd/ were written for this
+repository from that description and do not reproduce her files.

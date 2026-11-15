@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SigDec working model</title>
+<style>
+/* Layout: one reading column, each section = short prose + one playground panel. */
+:root{
+  --paper:#EEF1F5; --sheet:#FFFFFF; --ink:#14213D; --ink-soft:#4B587A; --line:#C9D1DF;
+  --pen:#2F4BD8; --pen-soft:#E3E8FB; --on-pen:#FFFFFF;
+  --must:#A3154A; --must-soft:#F8E1EA; --should:#9A5B00; --should-soft:#FBEBD0; --may:#0F766E; --may-soft:#D8F1EE;
+  --ok:#15803D; --ok-soft:#DDF3E4; --gap:#7A2E8E; --gap-soft:#F1E3F6;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:"Avenir Next","Segoe UI",system-ui,-apple-system,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ color-scheme:dark;
+  --paper:#0F1626; --sheet:#182238; --ink:#E8ECF6; --ink-soft:#A6B1CC; --line:#33415F;
+  --pen:#8EA2FF; --pen-soft:#232F55; --on-pen:#0F1626;
+  --must:#FF8FB3; --must-soft:#4A1730; --should:#F3B85C; --should-soft:#45300A; --may:#5FD6CA; --may-soft:#0E3D39;
+  --ok:#5BD58A; --ok-soft:#123A22; --gap:#D9A2EA; --gap-soft:#3A1F45; } }
+:root[data-theme="dark"]{ color-scheme:dark;
+  --paper:#0F1626; --sheet:#182238; --ink:#E8ECF6; --ink-soft:#A6B1CC; --line:#33415F;
+  --pen:#8EA2FF; --pen-soft:#232F55; --on-pen:#0F1626;
+  --must:#FF8FB3; --must-soft:#4A1730; --should:#F3B85C; --should-soft:#45300A; --may:#5FD6CA; --may-soft:#0E3D39;
+  --ok:#5BD58A; --ok-soft:#123A22; --gap:#D9A2EA; --gap-soft:#3A1F45; }
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.55}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.15;margin:0;text-wrap:balance}
+h1{font-size:clamp(2rem,5.4vw,3.1rem)} h2{font-size:clamp(1.45rem,3.8vw,2rem)} h3{font-size:1.1rem}
+p{margin:.7em 0;max-width:68ch} ul,ol{max-width:68ch;padding-left:1.2em} li{margin:.3em 0}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--pen);outline-offset:2px}
+code{font-family:var(--mono);font-size:.86em;background:var(--pen-soft);padding:1px 5px;border-radius:4px;word-break:break-word}
+pre{font-family:var(--mono);font-size:.8rem;line-height:1.5;background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:12px;margin:0;white-space:pre-wrap;word-break:break-word;overflow-x:auto}
+.wrap{max-width:940px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+nav.rail{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
+nav.rail ol{list-style:none;margin:0 auto;padding-block:8px;max-width:940px;display:flex;gap:6px;overflow-x:auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+nav.rail li{margin:0}
+nav.rail a{display:block;white-space:nowrap;text-decoration:none;color:var(--ink-soft);padding:6px 10px;border-radius:999px;font-size:.85rem;border:1px solid transparent}
+nav.rail a:hover{border-color:var(--line)}
+header.hero{padding-block:44px 28px}
+.lede{font-size:1.12rem;color:var(--ink-soft);max-width:64ch}
+.notice{background:var(--should-soft);border-left:5px solid var(--should);border-radius:4px 8px 8px 4px;padding:12px 16px;margin-top:18px;max-width:72ch}
+section.step{padding-block:40px;border-top:1px solid var(--line)}
+.num{font-family:var(--serif);color:var(--pen);font-size:1rem;margin-bottom:6px}
+.play{background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:18px;margin:18px 0}
+.play>h3{margin-bottom:10px}
+.note{font-size:.88rem;color:var(--ink-soft)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--sheet);border-radius:8px;padding:7px 12px;font-size:.92rem}
+.btn.on{background:var(--pen);border-color:var(--pen);color:var(--on-pen)}
+.btn:disabled{opacity:.45;cursor:default}
+.tag{display:inline-block;font-size:.75rem;padding:1px 8px;border-radius:4px;border:1px solid var(--line);color:var(--ink-soft);white-space:nowrap}
+.tag.fact{border-color:var(--ok);color:var(--ok)} .tag.prop{border-color:var(--pen);color:var(--pen)}
+.tag.test{border-color:var(--may);color:var(--may)} .tag.intent{border-color:var(--gap);color:var(--gap)}
+.stamp{font-family:var(--mono);font-size:.74rem;font-weight:700;padding:1px 6px;border-radius:4px;border:1.5px solid}
+.r-MUST{color:var(--must)} .r-SHOULD{color:var(--should)} .r-MAY{color:var(--may)}
+.explain{border-left:4px solid var(--pen);background:var(--pen-soft);border-radius:4px 8px 8px 4px;padding:12px 14px;margin-top:12px}
+.explain.bad{border-color:var(--must);background:var(--must-soft)} .explain.good{border-color:var(--ok);background:var(--ok-soft)}
+.explain.warn{border-color:var(--should);background:var(--should-soft)} .explain.gapb{border-color:var(--gap);background:var(--gap-soft)}
+.explain b.h{display:block;font-family:var(--serif);margin-bottom:4px}
+.path{font-family:var(--mono);font-size:.8rem;color:var(--ink-soft);word-break:break-word}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--serif)}
+.scroll{overflow-x:auto}
+/* map */
+.map{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:760px){.map{grid-template-columns:1fr}}
+.col{min-width:0;display:flex;flex-direction:column;gap:8px}
+.col h4{font-family:var(--sans);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 2px}
+.node{text-align:left;width:100%;border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:9px 10px;font-size:.9rem;line-height:1.3}
+.node small{display:block;color:var(--ink-soft);font-size:.76rem;margin-top:2px}
+.node.on{border-color:var(--pen);background:var(--pen-soft)}
+.node.lit{border-color:var(--pen);border-style:dashed}
+/* two-column playgrounds */
+.duo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:14px}
+@media (max-width:760px){.duo{grid-template-columns:1fr}}
+.duo>div{min-width:0}
+.list{display:flex;flex-direction:column;gap:6px}
+.item{text-align:left;border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:8px 10px;font-size:.92rem;width:100%}
+.item.on{border-color:var(--pen);background:var(--pen-soft)}
+.files{font-family:var(--mono);font-size:.82rem;border:1px solid var(--line);border-radius:6px;padding:8px;background:var(--paper)}
+.files .dir{color:var(--ink-soft);padding:2px 4px}
+.files button{display:block;width:100%;text-align:left;background:transparent;border:0;padding:3px 6px 3px 18px;border-radius:4px;font-family:var(--mono);font-size:.82rem}
+.files button.on{background:var(--pen-soft);color:var(--pen)}
+/* bars */
+.bar{display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.bar button{border:0;padding:10px 8px;font-size:.86rem;text-align:left;min-width:0;color:var(--ink)}
+.bar button b{display:block;font-family:var(--serif);font-size:1.2rem}
+.bar .b1{background:var(--must-soft)} .bar .b2{background:var(--should-soft)} .bar .b3{background:var(--gap-soft)}
+.bar button.on{outline:3px solid var(--ink);outline-offset:-3px}
+@media (max-width:560px){.bar{flex-direction:column}.bar button{flex:none!important}}
+.sect{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--paper)}
+.sect .ln{font-family:var(--mono);font-size:.76rem;color:var(--ink-soft);min-width:5.5ch;font-variant-numeric:tabular-nums}
+.sect>div{min-width:0;flex:1}
+.msg{display:grid;grid-template-columns:8.5rem minmax(0,1fr);gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+@media (max-width:560px){.msg{grid-template-columns:1fr;gap:2px}}
+.msg .who{font-size:.8rem;color:var(--ink-soft);font-weight:600}
+.msg.doubt>div:last-child{border-left:3px solid var(--should);padding-left:10px}
+.msg.done>div:last-child{border-left:3px solid var(--ok);padding-left:10px}
+.msg pre{margin-top:6px}
+footer{border-top:1px solid var(--line);padding-block:24px 40px;color:var(--ink-soft);font-size:.88rem}
+</style>
+</head>
+<body>
+<nav class="rail" aria-label="Sections"><ol id="rail"></ol></nav>
+
+<header class="hero"><div class="wrap">
+  <h1>Signed Decisions: the working model</h1>
+  <p class="lede">A small folder of ranked, signed rules that cross components. CRDs cite it, the agent file is generated from it, and a check compares it with the design files on every publish. This page shows each part, using Harbor, a fictional bank, as the example. The same files are in <code>examples/harbor/</code>.</p>
+  <div class="notice"><b>How to read the labels.</b> <span class="tag prop">example</span> is Harbor: invented for illustration, not a result. <span class="tag test">tested</span> comes from Experiment 1, or is something the tool in this repository does today. <span class="tag fact">observed</span> comes from an audit of one real project, given as counts only. <span class="tag intent">design intent</span> has not been built or tried with a team. One caution: the experiment’s decisions used the strictness words working, binding and mandatory. The MUST, SHOULD and MAY wording shown here came afterwards and has not yet been tested.</div>
+</div></header>
+
+<main>
+
+<section class="step" id="map" data-title="The whole thing"><div class="wrap">
+  <div class="num">1</div>
+  <h2>The whole thing on one map</h2>
+  <p>People decide. Their decision is stored once, in a folder. Everything a machine reads is generated from that folder, and it is called at four different moments. Tap any box to see what it is, where it is stored and an example.</p>
+  <div class="play">
+    <div class="map" id="mapGrid"></div>
+    <div class="explain" id="mapOut" aria-live="polite"></div>
+    <p class="note">Dashed boxes are what the selected box feeds or is fed by.</p>
+  </div>
+</div></section>
+
+<section class="step" id="sort" data-title="What goes where"><div class="wrap">
+  <div class="num">2</div>
+  <h2>What counts as a signed decision, and what does not</h2>
+  <p>The scope is narrow on purpose. A value belongs in a token. A rule about one component belongs in that component’s CRD (Component Requirements Document). The reasoning belongs in the history. A signed decision holds only a rule that several components or flows must follow, with the four things nothing else carries: a scope across components, a rank, a signer and a review date.</p>
+  <div class="play">
+    <h3>Pick a statement and see its home</h3>
+    <div class="duo"><div class="list" id="sortList"></div><div id="sortOut" aria-live="polite"></div></div>
+  </div>
+</div></section>
+
+<section class="step" id="start" data-title="How it starts"><div class="wrap">
+  <div class="num">3</div>
+  <h2>How it starts: sort what exists</h2>
+  <p>Nobody writes decisions from a blank page. A team that works with agents already has an agent file, and usually some record of past decisions. Starting is three sorting jobs.</p>
+  <ol>
+    <li><b>Sort the existing decision records.</b> Keep the ones that are still live and that cross components. The rest stay where they are, as history.</li>
+    <li><b>Split the agent file.</b> Each section stays, becomes a decision, or is deleted because it should be read live. The panel below shows the split.</li>
+    <li><b>Ask each function to sign, reword or reject.</b> Nothing is delivered to an agent until then.</li>
+  </ol>
+  <div class="play">
+    <h3>An agent file, section by section</h3>
+    <div class="row" id="splitFilter"></div>
+    <div class="list" id="splitList" style="margin-top:10px"></div>
+    <p class="note" id="splitNote"></p>
+  </div>
+</div></section>
+
+<section class="step" id="store" data-title="Where it lives"><div class="wrap">
+  <div class="num">4</div>
+  <h2>Where the decisions and the justifications live</h2>
+  <p>Decisions get their own folder at the top of the repository that holds the CRDs. They sit beside the records, not inside them, because a decision crosses components. They sit outside the agent file, because the agent file is an output. The justification is not copied: each decision links to the history entry that explains it.</p>
+  <div class="play">
+    <h3>Open a file</h3>
+    <div class="duo"><div class="files" id="tree"></div><div><div class="path" id="fileTag"></div><pre id="fileView" aria-live="polite"></pre></div></div>
+    <p class="note">These are the real files of the sample in <code>examples/harbor/</code>. <code>index.json</code> and the block in <code>AGENTS.md</code> were written by <code>sigdec.py compile</code>. The sample CRDs follow Cassie Groos’s description of the CRD in her article “Probabilistic isn’t a dirty word…”; they are not her files.</p>
+  </div>
+</div></section>
+
+<section class="step" id="record" data-title="One record"><div class="wrap">
+  <div class="num">5</div>
+  <h2>One record, three readers</h2>
+  <p>The same file serves the agent, a person and the tools, and each gets a different part of it. The agent gets a few lines. The reason stays behind until it is asked for.</p>
+  <div class="play">
+    <div class="row" id="viewPick"></div>
+    <div id="viewOut" style="margin-top:12px" aria-live="polite"></div>
+  </div>
+</div></section>
+
+<section class="step" id="make" data-title="Making one"><div class="wrap">
+  <div class="num">6</div>
+  <h2>How someone makes a decision, and how someone justifies it</h2>
+  <p>Writing and explaining are two separate acts. Writing is fast and happens where the decision is made. Explaining can come later. Step through a case: a designer was asked whether archiving a payee counts as removing data, and the decision did not say.</p>
+  <div class="play">
+    <h3>A decision, from question to live</h3>
+    <div class="row"><button class="btn on" id="lifeNext" type="button">Next step</button><button class="btn" id="lifeReset" type="button">Restart</button><span class="note" id="lifeCount"></span></div>
+    <div id="life" style="margin-top:8px" aria-live="polite"></div>
+    <p class="note"><span class="tag intent">design intent</span> The front door, the formatting assistant and the approval route are not built. Validation and compilation are: they are the tool in this repository. Approval can use the repository’s own review rules: a change under <code>decisions/</code> needs the owning function.</p>
+  </div>
+  <div class="play">
+    <h3>Three ways a justification gets written</h3>
+    <div class="row" id="justPick"></div>
+    <div id="justOut" style="margin-top:12px" aria-live="polite"></div>
+  </div>
+</div></section>
+
+<section class="step" id="when" data-title="When it is called"><div class="wrap">
+  <div class="num">7</div>
+  <h2>When the folder is called</h2>
+  <p>Four moments. Each one asks the folder a different question and sends the answer to a different reader.</p>
+  <div class="play">
+    <div class="row" id="seqPick"></div>
+    <div class="row" style="margin-top:10px"><button class="btn on" id="seqNext" type="button">Next step</button><button class="btn" id="seqAll" type="button">Show all</button><span class="note" id="seqCount"></span></div>
+    <div id="seq" style="margin-top:6px" aria-live="polite"></div>
+    <p class="note" id="seqNote"></p>
+  </div>
+</div></section>
+
+<section class="step" id="review" data-title="Review and promotion"><div class="wrap">
+  <div class="num">8</div>
+  <h2>Review, and how a decision becomes a token, a CRD statement or a lint rule</h2>
+  <p>A decision is meant to leave the folder. Once a rule is built into the system, nobody needs to read it any more: the token, the CRD or the build enforces it. Review is where that is decided.</p>
+  <p>Every decision comes up for review on a date: a MUST each year, a SHOULD after twelve months, a MAY after ninety days. Four events bring it forward: its check fails, a designer’s call is logged against it, another decision overrides it, or it still owes a justification. The signers, by function, choose one of four outcomes: renew, reword, retire or promote.</p>
+  <div class="play">
+    <h3>A review queue</h3>
+    <div class="duo"><div class="list" id="rqList"></div><div id="rqOut" aria-live="polite"></div></div>
+    <p class="note"><span class="tag prop">example</span> The first five rows match what <code>sigdec.py review</code> prints for the sample folder in December. The last row needs a check to have run. <span class="tag intent">design intent</span> for the review session itself.</p>
+  </div>
+  <div class="play">
+    <h3>Follow one decision until it leaves the folder</h3>
+    <div class="row" id="gpPick"></div>
+    <div class="row" style="margin-top:10px"><button class="btn on" id="gpNext" type="button">Next stage</button><button class="btn" id="gpAll" type="button">Show all</button><span class="note" id="gpCount"></span></div>
+    <div id="gp" style="margin-top:6px" aria-live="polite"></div>
+    <p class="note">A decision is ready to promote when it has been delivered often, its check has passed at every publish for a quarter, and no call or exception has been logged against it. Promotion has never been run with a team. Stages marked example exist as files in the sample folder.</p>
+  </div>
+  <div class="play">
+    <h3>What stays in the folder</h3>
+    <ul>
+      <li><b>Rules that need judgement</b> and that no token or test can hold yet.</li>
+      <li><b>Anything contested or unsigned.</b></li>
+      <li><b>Recent decisions</b> that have not yet shown they are stable.</li>
+    </ul>
+    <p>Two figures show whether the folder is healthy: how many decisions were promoted this quarter, and how many still owe a justification or are past their review date.</p>
+  </div>
+</div></section>
+
+<section class="step" id="ai" data-title="What the AI gets"><div class="wrap">
+  <div class="num">9</div>
+  <h2>What the AI gets, with a rules file and with the folder</h2>
+  <p>With a hand-written rules file, every agent loads the same text whatever it is building. With the folder it loads a short file, then asks for the decisions that touch its task.</p>
+  <div class="play">
+    <h3>Pick what the agent is working on</h3>
+    <div class="row" id="aiPick"></div>
+    <div class="duo" style="margin-top:12px"><div id="aiNow"></div><div id="aiNew"></div></div>
+  </div>
+</div></section>
+
+<section class="step" id="fix" data-title="What it fixes"><div class="wrap">
+  <div class="num">10</div>
+  <h2>What it fixes</h2>
+  <p>In November 2026 the author audited one real project: every file its agents read, and every decision record, compared with the live design files. It found 34 deviations. They fall into three groups, and each group has a different fix. <span class="tag fact">observed</span></p>
+  <div class="play">
+    <h3>Tap a group</h3>
+    <div class="bar" id="fixBar"></div>
+    <div id="fixOut" style="margin-top:12px" aria-live="polite"></div>
+  </div>
+  <div class="play">
+    <h3>The three faults of a hand-written agent file</h3>
+    <div class="scroll"><table>
+      <tr><th>Fault</th><th>Evidence</th><th>What changes</th><th>Status</th></tr>
+      <tr><td><b>Length</b></td><td>Long agent files add over 20% cost with no general gain (Gloaguen et al., 2026). The middle of a long text is retrieved worst (Liu et al., 2023)</td><td>One short record per rule; the agent gets only those in scope</td><td><span class="tag test">tested</span> on one flow</td></tr>
+      <tr><td><b>Silence</b></td><td>In Experiment 1 the rules file named a conflict in 5 runs of 5 and built the unsafe option in 5 of 5. Ranked, scoped records built the safe one in 9 of 10</td><td>A rank decides a collision. A check per decision reports drift to its signers</td><td>Rank: <span class="tag test">tested</span>. Checks: <span class="tag intent">design intent</span></td></tr>
+      <tr><td><b>Secrecy</b></td><td>In the audit, eight design rules reached agents only through an agent file edited by two people</td><td>The agent file is generated. A page anyone can open lists what agents are told</td><td>Generated block: <span class="tag test">tested</span> in the tool. Page: <span class="tag intent">design intent</span></td></tr>
+    </table></div>
+  </div>
+  <div class="play">
+    <h3>What it does not do</h3>
+    <ul>
+      <li><b>It does not replace the CRD.</b> About a third of the 34 deviations sat inside one component, and the CRD is the better tool for those.</li>
+      <li><b>It does not write the checks.</b> Each decision needs one, written by hand.</li>
+      <li><b>It does not decide.</b> Where two records disagree it names the functions that must settle it.</li>
+      <li><b>It is not proven with people.</b> Nothing yet shows that anyone will write or sign. Decision records have failed this way before: about half the projects that adopted them wrote fewer than five (Buchgeher et al., 2023).</li>
+      <li><b>One experiment.</b> One model, one flow, five runs per condition, no human raters. Token savings and steadier runs were predicted and did not hold.</li>
+    </ul>
+  </div>
+  <div class="play">
+    <h3>The smallest start</h3>
+    <ol>
+      <li>Open the file your agents read. For each design rule, ask whether a designer could see it anywhere else, and whether it is still true.</li>
+      <li>Write the rules that fail as ranked sentences, one file each. Ask the owning function to sign, reword or reject each one.</li>
+      <li>Run <code>sigdec.py compile</code> to generate the index and the agent file block.</li>
+      <li>Give it six weeks. If nobody adds or changes a decision, stop.</li>
+    </ol>
+  </div>
+</div></section>
+
+</main>
+<footer><div class="wrap">Signed Decisions is a concept by Phillip Sanders, built to support the CRD (Component Requirements Document) by Cassie Groos. Harbor is fictional. Sources and credits are in <code>REFERENCES.md</code>. This page is licensed CC BY 4.0.</div></footer>
+
+<script>
+(function(){
+"use strict";
+var $=function(id){return document.getElementById(id);};
+function el(t,c,h){var e=document.createElement(t);if(c)e.className=c;if(h!==undefined)e.innerHTML=h;return e;}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function stamp(r){return '<span class="stamp r-'+r+'">'+r+'</span>';}
+function tag(k){var m={fact:"observed",prop:"example",test:"tested",intent:"design intent"};return '<span class="tag '+k+'">'+m[k]+'</span>';}
+function picker(host,labels,cur,fn){host.innerHTML="";labels.forEach(function(l,i){var b=el("button","btn"+(i===cur?" on":""),esc(l));b.type="button";b.onclick=function(){fn(i);};host.appendChild(b);});}
+
+/* rail */
+[].forEach.call(document.querySelectorAll("section.step"),function(s,i){var li=el("li"),a=el("a",null,(i+1)+". "+esc(s.dataset.title));a.href="#"+s.id;li.appendChild(a);$("rail").appendChild(li);});
+
+/* 1 map */
+var COLS=[["People decide",["who","door"]],["Source: written and signed",["dec","ystat","crd"]],["Generated: never edited",["index","block","page","checks"]],["Who uses it",["agent","brief","crdcheck","publish"]]];
+var N={"who": {"n": "The people who decide", "s": "product, design, accessibility, Legal", "links": ["door"], "k": "prop", "d": "The functions that own a rule. They sign by approving a change; they do not need to open the repository.", "p": "decision-makers: [product, legal]", "x": "Product and Legal decided that anything that removes data or moves money confirms first."}, "door": {"n": "A front door", "s": "form, Figma comment or ticket", "links": ["who", "dec"], "k": "intent", "d": "Where a rough sentence is typed. An assistant formats it, asks one question to set the rank, and opens the change for approval.", "p": "Not built. For a trial, a shared document reviewed weekly does the same job.", "x": "“Archiving a payee is not removing it. An undo message is enough.”"}, "dec": {"n": "decisions/", "s": "one short file per decision", "links": ["door", "ystat", "crd", "index", "block", "page", "checks"], "k": "prop", "d": "The single source. Each file holds the statement, its rank, scope, signers, review date, a link to its justification and the name of its check.", "p": "decisions/DEC-0004.md", "x": "Seven records in the sample: five accepted, one promoted, one still proposed."}, "ystat": {"n": "history/", "s": "the reasoning, written once", "links": ["dec"], "k": "prop", "d": "The long record: the option chosen, the options set aside and the cost accepted. Decisions link to it, so the reason is never copied.", "p": "history/destructive-actions.md", "x": "It explains why an undo message was ruled out for shared accounts."}, "crd": {"n": "Component Requirements Documents (CRD)", "s": "one per component, cites decision IDs", "links": ["dec", "crdcheck"], "k": "prop", "d": "The Component Requirements Document, the work of Cassie Groos: one co-authored file per component, with numbered statements that are tested, what was ruled out and the decisions behind it. Where a statement depends on a cross-component rule, it cites the decision ID.", "p": "crd/data-table.md", "x": "Statement B2 of the data table cites DEC-0004."}, "index": {"n": "decisions/index.json", "s": "every live decision, one entry each", "links": ["dec", "agent", "brief", "crdcheck"], "k": "test", "d": "The compiled list that tools and agents query by scope. The compile step refuses a record with no rank, a scope key that is not in the vocabulary, or an override that points nowhere.", "p": "sigdec.py compile → decisions/index.json", "x": "A lookup for data-table and delete returns DEC-0004, then DEC-0012."}, "block": {"n": "Agent file block", "s": "a pointer and the always-on MUSTs", "links": ["dec", "agent"], "k": "prop", "d": "A fenced section of AGENTS.md or CLAUDE.md, generated and marked “do not edit”. It tells the agent to look decisions up by scope and lists only those that apply to every task.", "p": "AGENTS.md, between BEGIN GENERATED and END GENERATED", "x": "Two lines: DEC-0004 and DEC-0042."}, "page": {"n": "A page anyone can open", "s": "where the team already reads", "links": ["dec", "who"], "k": "intent", "d": "Every live decision with its signers, its review date and its reason, published in the documentation site or the wiki. It is the opposite of a file only two people edit.", "p": "Generated from decisions/. Not built.", "x": "A designer sees what agents are told about destructive actions, and who to ask why."}, "checks": {"n": "One check per decision", "s": "named in the record", "links": ["dec", "publish"], "k": "prop", "d": "A short instruction that reads the design file or the code and says whether the decision is followed. A decision with no check is still delivered; it just cannot report drift.", "p": "checks/confirm-before-destructive.md", "x": "Every destructive action is followed by a dialog that names the consequence."}, "agent": {"n": "An agent building a screen", "s": "asks by scope before it builds", "links": ["index", "block"], "k": "test", "d": "It lists the components and actions in its plan, asks for the decisions that apply and receives a handful, strictest first. If one is unclear it reads the justification, then asks the designer who launched it to make the call, and logs that call for the signers.", "p": "sigdec.py scope component:data-table action:delete", "x": "In Experiment 1, agents given ranked, scoped records built the safe path in 9 runs of 10."}, "brief": {"n": "A brief being written", "s": "checked before design starts", "links": ["index"], "k": "intent", "d": "Each requirement of a product brief is paired with the decisions it meets. The assistant asks where the brief contradicts one and stops where only a person can settle it.", "p": "briefs/close-savings-account.md", "x": "“Remove payees in bulk, with an undo message” meets DEC-0004, a MUST."}, "crdcheck": {"n": "A CRD being written", "s": "checked against the folder", "links": ["index", "crd"], "k": "intent", "d": "Each statement in a CRD is compared with the decisions in its scope: cite, close, or contradiction.", "p": "crd/data-table.md against decisions/", "x": "A draft that says “every row action uses an undo message” contradicts DEC-0004."}, "publish": {"n": "Every design-file publish", "s": "drift goes to the signers", "links": ["checks", "who"], "k": "intent", "d": "When the design library or a flow is published, every check runs. A failure is sent to the functions that signed the decision.", "p": "checks/*.md, run by an agent or a script", "x": "The legal notice on the close-account screen was shortened: sent to Legal."}};
+var curN="dec";
+function renderMap(){var g=$("mapGrid");g.innerHTML="";
+  COLS.forEach(function(c){var col=el("div","col");col.appendChild(el("h4",null,esc(c[0])));
+    c[1].forEach(function(k){var n=N[k],b=el("button","node"+(k===curN?" on":N[curN].links.indexOf(k)>=0?" lit":""),esc(n.n)+"<small>"+esc(n.s)+"</small>");b.type="button";b.onclick=function(){curN=k;renderMap();};col.appendChild(b);});
+    g.appendChild(col);});
+  var n=N[curN];$("mapOut").innerHTML="<b class='h'>"+esc(n.n)+" "+tag(n.k)+"</b><div>"+esc(n.d)+"</div><div class='path' style='margin-top:6px'>"+esc(n.p)+"</div><div style='margin-top:6px'><b>Harbor example:</b> "+esc(n.x)+"</div>";}
+renderMap();
+
+/* 2 sorter */
+var S=[["The danger red is #C8102E", "Token", "good", "A value. It lives in the token file and the design library, and nowhere else.", "tokens/harbor.tokens.json · color.feedback.danger"], ["The button label never wraps onto a second line", "CRD", "good", "A rule about one component. It is statement F2 of the button’s CRD.", "crd/button.md, F2"], ["Any action that removes data or moves money confirms first", "Signed decision", "", "It binds every button, table and flow that can delete or pay, so no single CRD can hold it. Each of those records cites it.", "decisions/DEC-0004.md · MUST · signers: product, legal"], ["Why an undo message was ruled out for shared accounts", "History", "good", "The reasoning. It is written once and linked from the decision, not copied.", "history/destructive-actions.md"], ["An icon-only button has an accessible name", "Signed decision", "", "It applies wherever an icon-only button appears and it is an accessibility requirement, so it is a MUST with a check that already exists in a standard tool.", "decisions/DEC-0042.md · MUST · verify: axe:button-name"], ["Change nothing in Figma without an explicit request", "Agent file, hand-written part", "good", "A working rule for agents, not a design decision. It stays in the agent file.", "AGENTS.md, “Working rules”"], ["The library has 64 components", "Nowhere: read it live", "warn", "A fact about the file that changes with every edit. Typed counts go stale, so they are deleted and read when needed.", "the design library"], ["Disabled buttons are drawn at 60% opacity", "Not delivered until signed", "bad", "It exists only in the agent file. Nobody signed it and nothing records why. It is either proposed as a decision, moved to the button’s record, or removed. On one real project, a line like this described a style that no component used.", "AGENTS.md, an unsigned line"]];
+var curS=2;
+function renderSort(){var l=$("sortList");l.innerHTML="";
+  S.forEach(function(s,i){var b=el("button","item"+(i===curS?" on":""),"“"+esc(s[0])+"”");b.type="button";b.onclick=function(){curS=i;renderSort();};l.appendChild(b);});
+  var s=S[curS];$("sortOut").innerHTML="<div class='explain "+s[2]+"' style='margin-top:0'><b class='h'>"+esc(s[1])+"</b><div>"+esc(s[3])+"</div><div class='path' style='margin-top:8px'>"+esc(s[4])+"</div></div>";}
+renderSort();
+
+/* 3 split */
+var SP=[["1–20", "Where things are: folders, the design library, how to reach it", "stay", "Working context. Stays hand-written."], ["22–38", "Working rules: read-only by default, the scope is the list given", "stay", "Stays."], ["40–62", "Status: component counts, what is published, a to-do list", "live", "Deleted. These go stale within days. An agent reads them from the files when it needs them."], ["64–70", "“Destructive actions confirm first.”", "dec", "Becomes DEC-0004, a MUST signed by product and Legal."], ["71–75", "“Tables use an undo toast.”", "dec", "Becomes DEC-0012, a SHOULD. In the flat file these two lines had no order between them; that is the collision Experiment 1 tested."], ["77–84", "“Show a short line saying that closing is permanent.”", "dec", "Becomes DEC-0041: the legal notice is shown word for word. The paraphrase in the agent file is removed."], ["86–97", "Property names and a disabled style that were proposed and never adopted", "hold", "Not delivered. Nobody signed them. The real property names belong in each CRD."], ["99–104", "“Use the danger red for destructive actions only.”", "dec", "Becomes DEC-0043, later promoted into the token’s description."], ["106–124", "Design-tool API pitfalls", "stay", "Working context. Stays."], ["126–140", "Tools and scripts", "stay", "Stays."]];
+var SPK=[["all","All sections"],["stay","Stays"],["dec","Becomes a decision"],["hold","Not delivered"],["live","Deleted, read live"]],curSP=0;
+function renderSplit(){picker($("splitFilter"),SPK.map(function(k){return k[1];}),curSP,function(i){curSP=i;renderSplit();});
+  var l=$("splitList");l.innerHTML="";var k=SPK[curSP][0];
+  SP.forEach(function(s){if(k!=="all"&&s[2]!==k)return;
+    var lab={stay:["stays","fact"],dec:["becomes a decision","prop"],hold:["not delivered","intent"],live:["deleted, read live","test"]}[s[2]];
+    l.appendChild(el("div","sect","<span class='ln'>"+s[0]+"</span><div><b>"+esc(s[1])+"</b> <span class='tag "+lab[1]+"'>"+lab[0]+"</span><div class='note'>"+esc(s[3])+"</div></div>"));});
+  $("splitNote").textContent="An invented agent file of about 140 lines, typical of what grows over a few months. The parts that stay, plus a generated block of about six lines, come to roughly 55.";}
+renderSplit();
+
+/* 4 tree */
+var F={"decisions/README.md": ["prop", "# decisions/\n\nOne file per signed decision. A decision is a rule that more than one component or flow must follow.\n\n- A rule about one component belongs in that component's CRD (`crd/`), which cites the decision ID\n  when it depends on one.\n- A value belongs in a token.\n- The reasoning belongs in `history/`. Each decision links to it.\n\nWrite a decision only if someone could plausibly propose the opposite. Keep values out of the sentence.\n\n## Rank\n\nSet by what breaks if the decision ships wrong.\n\n| Rank | When | Review |\n| --- | --- | --- |\n| MUST | law, money, safety or accessibility | every year |\n| SHOULD | the product becomes inconsistent | after twelve months |\n| MAY | a working arrangement | expires after ninety days |\n\nThe first line of the record contains exactly one of these words, in capitals.\n\n## When two decisions disagree\n\n1. The stricter rank wins.\n2. Same rank: the one that names the other in `overrides` wins.\n3. Then the narrower scope.\n4. Then ask the person who wrote the brief.\n\nTwo MUSTs that conflict are never resolved by an agent. It stops and names both signers.\n\n## Status\n\n…"], "decisions/DEC-0004.md": ["prop", "---\nid: DEC-0004\nstatus: accepted\nrank: MUST\nreader: product\nalways: true\nscope: [action:delete, action:transfer, state:destructive]\ndecision-makers: [product, legal]\ndate: 2026-09-14\nreview: 2027-09\njustification: history/destructive-actions.md\nverify: confirm-before-destructive\n---\nAny action that removes data or moves money MUST confirm first.\nBecause in shared accounts the harm falls on the person who did not act.\nNot: immediate action with an undo message.\nDo: a dialog that names the consequence."], "decisions/DEC-0012.md": ["prop", "---\nid: DEC-0012\nstatus: accepted\nrank: SHOULD\nreader: product\nscope: [component:data-table, flow:manage-payees]\ndecision-makers: [design-system]\ndate: 2026-09-14\nreview: 2027-09\njustification: history/tables-undo.md\nverify: undo-in-tables\n---\nRow actions in a table SHOULD take effect at once and offer an undo message.\nBecause a dialog on every row action slows down people who manage long lists.\nNot: a confirmation dialog for an action that can be reversed.\nDo: an undo message that stays for ten seconds."], "decisions/DEC-0043.md": ["prop", "---\nid: DEC-0043\nstatus: promoted\nrank: SHOULD\nreader: product\nscope: [content:colour, state:destructive]\ndecision-makers: [brand, design-system]\ndate: 2026-09-14\nreview: 2027-09\njustification: history/danger-colour.md\nverify: danger-colour-use\npromoted-to: token color.feedback.danger ($description and $extensions) in tokens/harbor.tokens.json\n---\nThe danger colour SHOULD be used only for destructive actions and errors.\nBecause the brand red and the danger red are close, and a red sale banner must not read as an alarm.\nNot: the danger colour for emphasis or marketing.\nDo: the brand colour for emphasis."], "decisions/index.json": ["test", "{\n  \"decisions\": [\n    {\n      \"id\": \"DEC-0004\",\n      \"rank\": \"MUST\",\n      \"scope\": [\n        \"action:delete\",\n        \"action:transfer\",\n        \"state:destructive\"\n      ],\n      \"say\": \"Any action that removes data or moves money MUST confirm first.\",\n      \"because\": \"in shared accounts the harm falls on the person who did not act.\",\n      \"not\": \"immediate action with an undo message.\",\n      \"do\": \"a dialog that names the consequence.\",\n      \"reader\": \"product\",\n      \"verify\": \"confirm-before-destructive\"\n    },\n    {\n      \"id\": \"DEC-0041\",\n      \"rank\": \"MUST\",\n      \"scope\": [\n        \"content:legal-notice\",\n        \"flow:close-account\"\n      ],\n      \"say\": \"A legal notice MUST be shown word for word, as written in `history/legal-notices.md`.\",\n      \"because\": \"a shortened notice is not the notice the regulator approved.\",\n      \"not\": \"a summary, a tooltip or a link in place of the text.\",\n      \"do\": \"the full text, visible without an extra tap, before the action it concerns.\",\n      \"reader\": \"product\",\n      \"verify\": \"legal-notice-verbatim\"\n…"], "decisions/calls/2026-11-15-archive-payee.md": ["prop", "---\ndecision: DEC-0004\ndate: 2026-11-15\nwork: Manage payees, archive action (Figma frame \"Payees / list\")\nflagged-to: [product, legal]\nstatus: awaiting review\n---\nConflict: DEC-0004 says any action that removes data confirms first. It does not say whether archiving a\npayee removes data. DEC-0012 says row actions in a table take effect at once with an undo message.\n\nCall (designer): no dialog; an undo message.\nWhy: an archived payee can be restored from the archive, so nothing is removed.\n\nApplied to this work only, until the signers confirm, reword or overrule it."], "history/destructive-actions.md": ["prop", "# Destructive actions confirm first\n\n- **Date:** 2026-09-14\n- **Decision:** DEC-0004\n- **Decided by:** product, legal\n\nIn the context of **actions that remove data or move money in shared accounts**, facing harm that falls on\nthe account holder who did not act, we decided that **every such action confirms first, in a dialog that\nnames the consequence**, and neglected an immediate action with an undo message, to protect the person who\nis not in the room, accepting one extra tap for the person who is.\n\n**Ruled out.** An undo message: a joint holder who is not looking at the screen cannot undo anything.\nA confirmation only above an amount threshold: the threshold would differ by market and be argued forever.\n\n**Open.** Whether archiving, which can be reversed, counts as removing data. See `decisions/calls/`."], "crd/data-table.md": ["prop", "---\nname: Data table\nlifecycle: active\nstatus:\n  requirements: complete\n  design: in progress\n  implementation: not started\ndecisions: [DEC-0004, DEC-0012, DEC-0042]\n---\n\n> A sample written for this repository. The CRD (Component Requirements Document) is the work of\n> Cassie Groos, described in her article \"Probabilistic isn't a dirty word…\" (27 August 2026). This sample\n> follows what that article describes; it is not her template. The `decisions:` field and the IDs in\n> brackets are additions made here.\n\n# CRD: Data table\n\n## 1 · Requirements\n\n**Purpose.** Shows a list of records in rows, and lets people act on one row or on several.\n\n**Scope.** In: sorting, row actions, bulk actions. Out of scope: editing a value inside a cell, which\nbelongs to the editable table.\n\n**Anatomy.** Container, header row, row, cell, row action, bulk action bar, undo message.\n\n### Behaviour\n\n- B1: A row action takes effect at once and shows an undo message. (DEC-0012)\n- B2: A row action that removes data or moves money opens a confirmation dialog first; it never uses an\n  undo message. (DEC-0004)\n- B3: A bulk action follows the same rule as the row action it repeats. (DEC-0004, DEC-0012)\n- [open] B4: Archiving a row is treated as reversible. Waiting for the signers of DEC-0004.\n\n### Accessibility\n\n- A1: Every icon-only row action has an accessible name. (DEC-0042)\n- [review] A2: The undo message stays long enough to be read and reached with a keyboard.\n\n### Ruled out\n\n- A confirmation dialog on every row action: it slows down people who manage long lists.\n\n### Open questions\n\n- Does archiving a payee count as removing data? Waiting on product and legal. A call was logged on 15/11.\n\n## Decisions\n\n- 2026-11-15: B2 is split from B1, because delete and payments follow DEC-0004, which is stricter."], "checks/confirm-before-destructive.md": ["prop", "# confirm-before-destructive\n\n- **Decision:** DEC-0004\n- **Reads:** the Figma file of the flow under test (read-only)\n\n## Steps\n\n1. List every interactive element whose label or name contains: delete, remove, close account, cancel\n   transfer, send, pay, transfer.\n2. For each one, follow its prototype link or the next frame in the flow.\n3. Pass if the next thing shown is a dialog whose text names the consequence (what is removed, or the\n   amount and the recipient).\n4. Fail if the action completes directly, or if the only safeguard is an undo message.\n\n## Report\n\nOne line per element: frame, element, pass or fail, and what follows the press. Count hidden dialogs\nseparately: a dialog that exists but is not connected is a fail with a note."], "tokens/harbor.tokens.json": ["prop", "{\n  \"color\": {\n    \"brand\": {\n      \"primary\": {\n        \"$type\": \"color\",\n        \"$value\": \"#D4262E\",\n        \"$description\": \"Brand red. Logo, marketing and emphasis. Never on a destructive action.\"\n      }\n    },\n    \"feedback\": {\n      \"danger\": {\n        \"$type\": \"color\",\n        \"$value\": \"#C8102E\",\n        \"$description\": \"Danger red. Destructive actions and errors only.\",\n        \"$extensions\": { \"org.sigdec.decisions\": [\"DEC-0043\"] }\n      }\n    }\n  }\n}"], "AGENTS.md": ["test", "# Harbor design system: context for agents\n\n## Where things are\n\n- `tokens/` holds the design tokens. Values are authoritative in the Figma library.\n- `crd/` holds one CRD per component. Read the record before changing a component.\n- `decisions/` holds the rules that cross components. Do not edit `decisions/index.json` or the block below.\n\n## Working rules\n\n- Change nothing in Figma without an explicit request. Reviews and checks are read-only.\n- The scope of a task is the list you were given. Propose additions in one sentence; do not make them.\n- If a decision is unclear for the work in hand, read its justification. If it is still unclear, ask the\n  person who launched you to make the call, then log it in `decisions/calls/`.\n- If two MUST decisions conflict, stop and name both signers.\n\n<!-- BEGIN GENERATED: decisions — do not edit; run sigdec.py compile -->\nBefore building or changing a component, look up its decisions:\ndecisions/index.json, filtered by component, flow or action\n(or run `sigdec.py scope <keys>`).\n\nAlways apply:\n- DEC-0004 · MUST — Any action that removes data or moves money MUST confirm first.\n- DEC-0042 · MUST — An icon-only button MUST have an accessible name.\n<!-- END GENERATED -->"], "CODEOWNERS": ["prop", "# A change to a decision needs the function that owns it. Approving is signing.\n/decisions/                @harbor/design-system\n/decisions/DEC-0004.md     @harbor/product @harbor/legal\n/decisions/DEC-0012.md     @harbor/design-system\n/decisions/DEC-0041.md     @harbor/legal\n/decisions/DEC-0042.md     @harbor/accessibility\n/decisions/DEC-0043.md     @harbor/brand @harbor/design-system"]};
+var curF="decisions/DEC-0004.md";
+function renderTree(){var t=$("tree");t.innerHTML="";t.appendChild(el("div","dir","harbor/"));
+  Object.keys(F).forEach(function(k){var b=el("button",k===curF?"on":null,esc(k));b.type="button";b.onclick=function(){curF=k;renderTree();};t.appendChild(b);});
+  $("fileTag").innerHTML=esc(curF)+" "+tag(F[curF][0]);$("fileView").textContent=F[curF][1];}
+renderTree();
+
+/* 5 views */
+var VW=[["What the agent receives", "<pre>DEC-0004 · MUST — Any action that removes data or moves money MUST confirm first.\n    Not: immediate action with an undo message.\n    Do: a dialog that names the consequence.</pre><p>Three lines, with the ID so the agent can cite it. No signers, no dates, no history. It arrives when the task touches a delete or a transfer, and it is one of two decisions always present in the agent file.</p>"], ["What a person sees", "<div class='explain' style='margin-top:0'><b class='h'>DEC-0004 <span class=\"stamp r-MUST\">MUST</span></b><div>Any action that removes data or moves money confirms first.</div><div class='note' style='margin-top:6px'>Signed by: product, Legal · 14 September 2026 · review due September 2027</div><div class='note'>Applies to: delete, transfer, any destructive state</div><div class='note'>Why: in shared accounts the harm falls on the person who did not act. Full reasoning in history/destructive-actions.md.</div><div class='note'>Open: one call logged on 15 November (archiving a payee).</div></div><p>The published page. The signers are functions to ask, not people to blame.</p>"], ["What the tools read", "<pre>$ sigdec.py validate\n7 records valid\n\nid matches the file name                     ✓\nrank MUST, and the first line says MUST      ✓\nscope keys are in decisions/scopes.txt       ✓\nreview 2027-09                               ✓\njustification file exists                    ✓\ncheck exists: checks/confirm-before-destructive.md  ✓</pre><p>The compile step. A failure blocks the change. The check itself runs when the design file is published.</p>"], ["On request: the justification", "<pre>history/destructive-actions.md\n\n“In the context of actions that remove data or move money in\nshared accounts, facing harm that falls on the account holder who\ndid not act, we decided that every such action confirms first …\nand neglected an immediate action with an undo message …”\n\nOpen. Whether archiving, which can be reversed, counts as\nremoving data.</pre><p>Read only when the agent doubts whether the decision applies. Here the history itself says the question is open, so the agent asks the designer.</p>"]],curV=0;
+function renderView(){picker($("viewPick"),VW.map(function(v){return v[0];}),curV,function(i){curV=i;renderView();});$("viewOut").innerHTML=VW[curV][1];}
+renderView();
+
+/* 6 lifecycle */
+var LIFE=[["A logged call arrives", "Signers of DEC-0004", "During a build, a designer was asked whether archiving a payee counts as removing data, and chose an undo message. The agent logged the call and flagged it to product and Legal.", "decisions/calls/2026-11-15-archive-payee.md"], ["A sentence is typed", "Product, at the front door", "“Archiving can be undone, so it does not need a dialog.” Typed in a form, a Figma comment or a ticket. Ten seconds."], ["The assistant formats it", "Assistant", "It finds that DEC-0004 already covers this scope, so it proposes a rewording, not a new decision. It asks one question: “If this ships wrong, is anything unlawful or unsafe, or does the product only become inconsistent?” The rank stays MUST.", "Any action that permanently removes data or moves money MUST confirm first.\nscope: [action:delete, action:transfer, state:destructive]"], ["The folder checks it", "sigdec.py validate", "The record is well formed, its scope keys exist and its check is found. The check’s wording is updated to leave out archive actions.", "7 records valid"], ["The owning functions sign", "Product and Legal", "A change to DEC-0004 needs both functions named in CODEOWNERS. Approving is the signature. If they decline, the draft moves to decisions/rejected/ with the reason."], ["Everything downstream regenerates", "sigdec.py compile", "The index and the agent file block are rewritten. The call log is marked confirmed. The data table’s record can close its open statement B4.", "updated AGENTS.md\nwrote decisions/index.json (5 live decisions)"], ["The check runs again", "At the next publish", "Archive actions with an undo message now pass. A delete with only an undo message still fails and goes to product and Legal."], ["Later: review", "Signers", "At its review date, or earlier if another call is logged or its check fails, the decision is renewed, reworded, retired or promoted. Section 8 shows the review queue and how a decision leaves the folder."]];
+var lifeStep=1;
+function renderLife(){var h=$("life");h.innerHTML="";
+  LIFE.slice(0,lifeStep).forEach(function(s,i){h.appendChild(el("div","msg"+(i===lifeStep-1?" done":""),"<div class='who'>"+(i+1)+". "+esc(s[0])+"<br><span class='note'>"+esc(s[1])+"</span></div><div>"+esc(s[2])+(s[3]?"<pre>"+esc(s[3])+"</pre>":"")+"</div>"));});
+  $("lifeNext").disabled=lifeStep>=LIFE.length;$("lifeCount").textContent="Step "+lifeStep+" of "+LIFE.length;}
+$("lifeNext").onclick=function(){lifeStep++;renderLife();};$("lifeReset").onclick=function(){lifeStep=1;renderLife();};
+renderLife();
+var JU=[["It is written with the decision", "<p><b>The usual case.</b> The reasoning is written in the history when the decision is made, as one sentence in a fixed shape. The decision file carries a line pointing to it.</p><pre>justification: history/destructive-actions.md\n\nIn the context of …, facing …, we decided …,\nand neglected …, to achieve …, accepting …</pre>"], ["Decide now, justify later", "<p><b>For a decision made under pressure.</b> The sentence is signed and delivered straight away. It is marked as owing a reason, it gets a short life, and the review queue lists it until someone writes the history entry or lets it lapse.</p><pre>justification: pending\nreview: 2026-12        # ninety days, not twelve months\n\n$ sigdec.py review\nDEC-0044   owes a justification   → design-system</pre>"], ["A designer makes the call during a build", "<p><b>When a decision is unclear in use.</b> The agent first reads the justification. If that does not settle it, the agent does not guess and does not wait for the signers. It asks the designer who launched it to make the call, with a brief explanation.</p><pre>Agent → designer\n  DEC-0004 says any action that removes data confirms first.\n  It does not say whether archiving a payee removes data.\n  A dialog, or an undo message? One line on why, please.\n\nDesigner → agent\n  An undo message. An archived payee can be restored.</pre><p>The agent finishes the work with that answer. Once the generation is complete, it does three things.</p><ol><li><b>Logs the call</b>: the conflict, the designer’s choice and the explanation, in <code>decisions/calls/</code>.</li><li><b>Marks the work</b>: a Figma annotation on the frame, naming the decision and the call, so anyone opening the file sees that a judgement was made there.</li><li><b>Tells the signers</b>: the log entry is flagged for the owners of DEC-0004 in CODEOWNERS, or a comment tags them on the frame or the pull request.</li></ol><pre>Annotation on “Payees / list”\n  DEC-0004 was unclear for the archive action.\n  Call: undo message (designer, 15 Nov). Flagged to: product, legal.</pre><p>The designer’s line becomes the draft justification. The signers confirm it, reword it or overrule it at review. The call holds for that piece of work only until they do.</p>"]],curJ=0;
+function renderJust(){picker($("justPick"),JU.map(function(v){return v[0];}),curJ,function(i){curJ=i;renderJust();});$("justOut").innerHTML=JU[curJ][1]+"<p class='note'>"+tag("intent")+"</p>";}
+renderJust();
+
+/* 7 sequences */
+var SEQ=[{"n": "An agent builds", "note": "test", "t": "The lookup by scope and the ranked result are the part Experiment 1 tested, on this collision. Reading the justification, asking the designer, the log and the annotation are design intent.", "s": [["person", "Designer", "“Add bulk remove and archive to the payees table.”"], ["agent", "Agent", "Lists what the task touches.", "component:data-table\nflow:manage-payees\naction:delete\naction:archive"], ["folder", "Folder", "Returns the decisions in scope, strictest first.", "DEC-0004 · MUST   — Any action that removes data or moves money MUST confirm first.\nDEC-0012 · SHOULD — Row actions in a table SHOULD take effect at once and offer an undo message."], ["agent done", "Agent", "Bulk remove: the two decisions disagree. The stricter rank wins, so removal opens a dialog that names how many payees will be removed."], ["agent doubt", "Agent", "Archive: does archiving remove data? It reads the justification, which lists this as open.", "history/destructive-actions.md → “Open. Whether archiving … counts as removing data.”"], ["agent doubt", "Agent to designer", "“A dialog, or an undo message, for archive? One line on why, please.”"], ["person", "Designer", "“An undo message. An archived payee can be restored.”"], ["agent", "Agent, after the generation", "Logs the call, annotates the frame and flags the entry to the signers of DEC-0004.", "decisions/calls/2026-11-15-archive-payee.md\nFigma annotation on “Payees / list”\nflagged to: product, legal"], ["person", "Agent to designer", "Delivers the table with: “DEC-0004 applied over DEC-0012 for bulk remove (stricter rank). Archive uses an undo message on your call, logged and sent to the signers.”"]]}, {"n": "A brief is written", "note": "intent", "t": "Design intent. The brief is in the sample folder: briefs/close-savings-account.md.", "s": [["person", "Product manager", "Writes the brief for closing a savings account: seven requirements."], ["agent", "Assistant", "Pairs each requirement with the folder."], ["agent done", "Assistant", "Pinned. R2, the pending transfer is shown before closing: DEC-0004 applies and the brief agrees."], ["agent doubt", "Assistant", "Stop. R4 asks for bulk removal of payees with an undo message. DEC-0004 is a MUST: removal confirms first. Product and Legal decide; the assistant does not."], ["agent doubt", "Assistant", "Stop. R3 asks for “a short line” saying that closing is permanent. DEC-0041 is a MUST: the legal notice is shown word for word."], ["agent doubt", "Assistant", "Question. R6 wants the close button in the brand red. The danger colour is the one for destructive actions (the token’s description, from DEC-0043). Is brand red intended?"], ["agent doubt", "Assistant", "Gap. R7, interest rules per market: no decision covers it, and it concerns money and law. Ask Legal."], ["person", "Assistant to author", "One requirement pinned, two stops, one question, one gap, and R5 (archive) pointed to the open call. The brief goes to design after the two stops are settled."]]}, {"n": "A CRD is written", "note": "intent", "t": "Design intent, using the sample record crd/data-table.md.", "s": [["person", "Designer", "Drafts the data table’s CRD."], ["agent", "Check", "Compares each statement with the decisions in scope."], ["agent done", "Check", "B1 “a row action takes effect at once and shows an undo message” restates DEC-0012: keep it and cite the ID."], ["agent doubt", "Check", "Contradiction. The draft says “every row action, including delete, uses an undo message”. DEC-0004 is a MUST: delete confirms first."], ["agent done", "Check", "A1 “every icon-only row action has an accessible name” cites DEC-0042. Consistent."], ["person", "Check to designer", "Split the statement in two: B1 for reversible actions, B2 for delete and payments, citing DEC-0004. Nothing is built from the record until then."]]}, {"n": "The design file is published", "note": "intent", "t": "Design intent. Each check is a written instruction in checks/ that an agent or a script follows; nothing is changed in the file.", "s": [["person", "Design system team", "Publishes the library and the close-account flow."], ["agent", "Check", "Runs the check named in each decision."], ["agent done", "Check", "DEC-0004, confirm-before-destructive: every delete and transfer is followed by a dialog that names the consequence."], ["agent done", "Check", "DEC-0043, danger-colour-use: the danger token appears only on destructive actions and errors."], ["agent doubt", "Check", "DEC-0041, legal-notice-verbatim: fails. The notice on the close-account screen stops after “Closing this account is permanent.”"], ["agent", "Check", "DEC-0042 is verified in code by an accessibility rule: reported as “runs in code, not run here”."], ["person", "Check to signers", "The failure goes to Legal with the frame and the missing sentences: restore the text, or sign a new wording."]]}];
+var curQ=0,qStep=1;
+function renderSeq(){picker($("seqPick"),SEQ.map(function(q){return q.n;}),curQ,function(i){curQ=i;qStep=1;renderSeq();});
+  var q=SEQ[curQ],h=$("seq");h.innerHTML="";
+  q.s.slice(0,qStep).forEach(function(m){h.appendChild(el("div","msg "+m[0],"<div class='who'>"+esc(m[1])+"</div><div>"+esc(m[2])+(m[3]?"<pre>"+esc(m[3])+"</pre>":"")+"</div>"));});
+  $("seqNext").disabled=qStep>=q.s.length;$("seqCount").textContent="Step "+qStep+" of "+q.s.length;$("seqNote").innerHTML=tag(q.note)+" "+esc(q.t);}
+$("seqNext").onclick=function(){qStep++;renderSeq();};$("seqAll").onclick=function(){qStep=SEQ[curQ].s.length;renderSeq();};
+renderSeq();
+
+/* 8 review queue and promotion */
+var RQ=[["DEC-0004", "MUST", "A call was logged", "A designer chose an undo message for archiving a payee on 15 November. The decision says “removes data”; the history lists archiving as open.", "Product and Legal", "Reword", "“Permanently removes data.” The designer’s line becomes part of the justification."], ["DEC-0042", "MUST", "Check passing", "The accessibility rule for button names has passed in every build this quarter. No call logged.", "Accessibility", "Promote", "Into a required property in the icon-button’s record and the automated rule in the build. The decision leaves the index."], ["DEC-0043", "SHOULD", "Already built into a token", "The danger colour token carries the rule in its description, and components bind it.", "Brand and design system", "Promote", "Already done in the sample: status is promoted and agents no longer receive it."], ["DEC-0044", "MAY", "Expired, and owes a justification", "A working arrangement for screens not yet migrated. Its ninety days are up and no reason was ever written.", "Design system", "Retire", "Status becomes retired. The file stays as history."], ["DEC-0045", "SHOULD", "Never signed", "Proposed: amounts show two decimals in every market. No function has approved it.", "Product", "Sign or reject", "A proposal is not delivered to agents. It stays in the queue until a function owns it."], ["DEC-0041", "MUST", "Check failing", "The legal notice on the close-account screen was shortened in the latest publish.", "Legal", "Decide", "Restore the text, or sign a new wording that replaces the old one. Until then the screen is not released."]],curR=0;
+function renderRQ(){var l=$("rqList");l.innerHTML="";
+  RQ.forEach(function(r,i){var b=el("button","item"+(i===curR?" on":""),"<b>"+esc(r[0])+"</b> "+(r[1]!=="—"?stamp(r[1]):"")+"<div class='note'>"+esc(r[2])+"</div>");b.type="button";b.onclick=function(){curR=i;renderRQ();};l.appendChild(b);});
+  var r=RQ[curR],cls={Promote:"good",Retire:"gapb",Reword:"",Renew:"","Sign or reject":"warn",Decide:"bad"}[r[5]];
+  $("rqOut").innerHTML="<div class='explain "+cls+"' style='margin-top:0'><b class='h'>"+esc(r[2])+"</b><div><b>Evidence:</b> "+esc(r[3])+"</div><div style='margin-top:6px'><b>Reviewed by:</b> "+esc(r[4])+"</div><div style='margin-top:6px'><b>Proposed outcome: "+esc(r[5])+".</b> "+esc(r[6])+"</div></div>";}
+renderRQ();
+var GP=[{"n": "Into a token", "s": [["Signed", "prop", "DEC-0043: the danger colour is used only for destructive actions and errors. Agents receive it whenever a task touches colour or a destructive state."], ["Built into the system", "prop", "The token file has two reds, each with a description that says what it is for.", "color.brand.primary     “Brand red. Logo, marketing and emphasis.\n                         Never on a destructive action.”\ncolor.feedback.danger   “Danger red. Destructive actions and errors only.”"], ["Followed", "prop", "At each publish the check finds the danger token only on destructive actions and errors. No call is logged."], ["Review promotes it", "prop", "The signers agree the token now carries the rule. The token records the decision it came from, so the reason travels with it.", "\"$extensions\": { \"org.sigdec.decisions\": [\"DEC-0043\"] }"], ["It leaves the folder", "prop", "The file stays as history. The index drops it, so agents no longer read it: a component that binds the token cannot pick the wrong red.", "status: promoted\npromoted-to: token color.feedback.danger"]]}, {"n": "Into CRD statements", "s": [["Signed", "prop", "DEC-0004: any action that removes data or moves money confirms first."], ["Reworded after a call", "intent", "A designer’s call on archiving was logged. At review the signers narrow the wording to “permanently removes”."], ["Followed", "intent", "Its check passes at every publish for a quarter. No further call is logged."], ["Review promotes it", "intent", "The rule becomes a numbered statement in each CRD it touches, citing the ID, with a test.", "CRD button      I1  … opens a confirmation dialog. (DEC-0004)\nCRD data-table  B2  … never uses an undo message. (DEC-0004)\nCRD dialog      F3  A confirming dialog names the consequence. (DEC-0004)\nTest            every destructive story opens a dialog"], ["It leaves the folder", "intent", "The statements now hold the rule and their tests enforce it. The decision file keeps the history and the signers.", "status: promoted\npromoted-to: crd:button#I1, crd:data-table#B2, crd:dialog#F3"]]}, {"n": "Into a lint rule or test", "s": [["Signed", "prop", "DEC-0042: an icon-only button has an accessible name. Signed by accessibility; it cites WCAG 4.1.2."], ["A check already exists", "prop", "The decision points to a rule in a standard accessibility engine, so no new check has to be written.", "verify: axe:button-name"], ["Followed", "intent", "The rule runs on every component story and passes in every build for a quarter."], ["Review promotes it", "intent", "The rule becomes a required step in the build, and the label becomes a required property in the icon-button’s record.", "CI     accessibility rule button-name: error, not warning\nCRD    icon-button A1: the label property is required. (DEC-0042)"], ["It leaves the folder", "intent", "A missing name now fails the build with the decision ID. An exception needs a disable comment with a reason, which a reviewer sees.", "status: promoted\npromoted-to: lint axe:button-name"]]}],curG=0,gStep=1;
+function renderGP(){picker($("gpPick"),GP.map(function(g){return g.n;}),curG,function(i){curG=i;gStep=1;renderGP();});
+  var g=GP[curG],h=$("gp");h.innerHTML="";
+  g.s.slice(0,gStep).forEach(function(s,i){h.appendChild(el("div","msg"+(i===g.s.length-1?" done":""),"<div class='who'>"+(i+1)+". "+esc(s[0])+"<br>"+tag(s[1])+"</div><div>"+esc(s[2])+(s[3]?"<pre>"+esc(s[3])+"</pre>":"")+"</div>"));});
+  $("gpNext").disabled=gStep>=g.s.length;$("gpCount").textContent="Stage "+gStep+" of "+g.s.length;}
+$("gpNext").onclick=function(){gStep++;renderGP();};$("gpAll").onclick=function(){gStep=GP[curG].s.length;renderGP();};
+renderGP();
+
+/* 9 what the AI gets */
+var AI=[["Bulk removal of payees in a table", ["A rules file, loaded whole. Two of its lines apply:", "- Destructive actions confirm first.\n- Tables use an undo toast.", "bad", "No order between the two. In Experiment 1 the agent wrote that they conflicted in 5 runs of 5, then built the undo message in 5 of 5."], ["A lookup for data-table and delete:", "DEC-0004 · MUST   — Any action that removes data or moves money\n                    MUST confirm first.\nDEC-0012 · SHOULD — Row actions in a table SHOULD take effect at\n                    once and offer an undo message.", "good", "The stricter rank wins. In Experiment 1, agents given the rules this way built the confirmation in 9 runs of 10, against 0 of 20 for every other briefing."]], ["A delete button’s colour", ["Token values only:", "color.brand.primary     #D4262E\ncolor.feedback.danger   #C8102E", "warn", "Two reds and no meaning. In an illustration by Romina Kavcic, an agent given values alone chose the brand red for a delete button in two runs of three."], ["The token, with the description the decision was promoted into:", "color.feedback.danger   #C8102E\n  “Danger red. Destructive actions and errors only.”\n  decisions: DEC-0043", "good", "No decision is delivered at all: the rule lives in the token. In Experiment 1 the danger colour was right in 4 or 5 runs of 5 under every briefing, so described tokens already cover this case."]], ["The close-account screen", ["A rules file says:", "- Tell the customer that closing an account is permanent.", "bad", "A paraphrase. The agent writes its own sentence, which is not the text Legal approved."], ["A lookup for close-account:", "DEC-0041 · MUST — A legal notice MUST be shown word for word,\n                  as written in history/legal-notices.md.\nDEC-0004 · MUST — Any action that removes data or moves money\n                  MUST confirm first.", "good", "The agent fetches the exact text. In Experiment 1 the legal notice appeared word for word in 5 runs of 5 wherever its text was delivered, and in 0 of 15 elsewhere."]], ["Archiving a payee", ["Nothing in the rules file covers archiving.", "(no instruction)", "warn", "The agent picks whatever is most common, and nobody learns that a judgement was made."], ["A lookup for data-table and archive:", "DEC-0012 · SHOULD — Row actions in a table SHOULD take effect at\n                    once and offer an undo message.\nDEC-0004 · MUST   — unclear for archive; its history lists the\n                    question as open.\n→ Ask the designer. Log the call. Flag product and legal.", "good", "The agent asks the person in front of it, finishes the work, and leaves a record for the signers."]]];
+var curA=0;
+function aiBox(title,x,lab){return "<div class='note'><b>"+lab+"</b> "+esc(x[0])+"</div><pre style='margin-top:6px'>"+esc(x[1])+"</pre><div class='explain "+x[2]+"'>"+esc(x[3])+"</div>";}
+function renderAI(){picker($("aiPick"),AI.map(function(a){return a[0];}),curA,function(i){curA=i;renderAI();});
+  $("aiNow").innerHTML=aiBox("",AI[curA][1],"Today.");$("aiNew").innerHTML=aiBox("",AI[curA][2],"With the folder.");}
+renderAI();
+
+/* 9 fixes */
+var FX=[[11, "instructions that contradicted the design files or a decision", "b1", "explain bad", "<b class='h'>11 contradictory instructions</b><div>Eight existed only in the agent file: a disabled style that no component used, property names that no component had, a font rule that was half true. Three were rules that had been replaced without the file saying so.</div><div style='margin-top:8px'><b>Fix:</b> the agent file is generated. A rule nobody signed cannot reach it, and a proposal is not delivered until it is accepted. A new decision names the one it replaces.</div>"], [6, "decisions the design files no longer followed", "b2", "explain warn", "<b class='h'>6 drifts</b><div>A component moved to a different family of styles against a recorded decision. A loading state drawn narrower than agreed. A naming rule broken by one published token. None was chosen; each happened during other work.</div><div style='margin-top:8px'><b>Fix:</b> each decision names a check, the check runs at every publish, and a failure goes to the functions that signed it. These six were found by hand in an afternoon; they would have been reported on the day they happened.</div>"], [17, "stale facts about the files", "b3", "explain gapb", "<b class='h'>17 stale facts</b><div>Counts, mode names, page names, to-do lists and status lines typed by hand and left behind.</div><div style='margin-top:8px'><b>Fix:</b> none of these is a decision, so none is stored. Agents read them from the files when needed. This is a side effect of the discipline, not a feature.</div>"]],curX=0;
+function renderFix(){var b=$("fixBar");b.innerHTML="";
+  FX.forEach(function(f,i){var x=el("button",f[2]+(i===curX?" on":""),"<b>"+f[0]+"</b>"+esc(f[1]));x.type="button";x.style.flex=f[0]+" 1 0";x.onclick=function(){curX=i;renderFix();};b.appendChild(x);});
+  $("fixOut").innerHTML="<div class='"+FX[curX][3]+"' style='margin-top:0'>"+FX[curX][4]+"</div><p class='note'>Of the 34, a CRD would have caught 10 or 11, all inside single components. A CRD written during the same project contradicted a decision in three places within days, because a record is checked when it is written and not again.</p>";}
+renderFix();
+})();
+</script>
+</body>
+</html>

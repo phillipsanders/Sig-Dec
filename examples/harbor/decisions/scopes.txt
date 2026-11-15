@@ -1,0 +1,14 @@
+# The scope keys a decision may use. Component names match the Figma library and crd/.
+component:button
+component:icon-button
+component:dialog
+component:data-table
+component:banner
+flow:close-account
+flow:manage-payees
+action:delete
+action:transfer
+action:archive
+content:legal-notice
+content:colour
+state:destructive

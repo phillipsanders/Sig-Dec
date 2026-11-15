@@ -1,0 +1,7 @@
+# A change to a decision needs the function that owns it. Approving is signing.
+/decisions/                @harbor/design-system
+/decisions/DEC-0004.md     @harbor/product @harbor/legal
+/decisions/DEC-0012.md     @harbor/design-system
+/decisions/DEC-0041.md     @harbor/legal
+/decisions/DEC-0042.md     @harbor/accessibility
+/decisions/DEC-0043.md     @harbor/brand @harbor/design-system
